@@ -384,7 +384,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
       <select id="tx-sig"><option value="unsigned">서명 안됨</option><option value="signed">서명됨</option></select>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
         <button class="btn btn-blue" onclick="saveTx()">💾 저장 &amp; 계산</button>
-        <button class="btn-bc" id="btn-tx-bc" onclick="broadcastTx()">📡 TX 브로드캐스트 (36명 전파)</button>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:6px;"><button class="btn-bc" id="btn-tx-bc" onclick="broadcastTx()">📡 TX 브로드캐스트 (36명 전파)</button><button class="btn" onclick="resetTxForm()" style="background:#21262d;color:#8b949e;border:1px solid #30363d;padding:0 14px;border-radius:6px;font-size:12px;cursor:pointer;" title="입력 초기화">↺</button></div>
       </div>
       <div id="tx-result" style="display:none;">
         <div class="result-title">💾 저장된 트랜잭션</div>
@@ -458,7 +458,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
           <div id="b-sig" style="background:#0d1117;border:1px solid #21262d;border-radius:4px;padding:5px;font-family:monospace;font-size:9px;color:#56d364;word-break:break-all;">저장 시 자동 계산</div>
         </div>
         <button class="btn btn-green" style="width:100%;padding:11px;font-size:13px;margin-top:14px;" onclick="saveBlock()">💾 저장 및 계산하기</button>
-        <button class="btn-bc" id="btn-block-bc" style="display:none;" onclick="broadcastBlock()">📡 블록 브로드캐스트 (검증자에게 전파)</button>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:6px;"><button class="btn-bc" id="btn-block-bc" style="display:none;" onclick="broadcastBlock()">📡 블록 브로드캐스트 (검증자에게 전파)</button><button class="btn" id="btn-block-reset" onclick="resetBlockForm()" style="display:none;background:#21262d;color:#8b949e;border:1px solid #30363d;padding:0 14px;border-radius:6px;font-size:12px;cursor:pointer;" title="입력 초기화">↺</button></div>
         <div id="b-result" style="display:none;margin-top:10px;">
           <div class="result-title">💾 저장된 블록</div>
           <div class="result-box" id="b-result-content"></div>
@@ -1738,6 +1738,7 @@ function saveBlock(){
   const bBcBtn=document.getElementById('btn-block-bc');
   if(bResult) bResult.style.display='block';
   if(bBcBtn)  bBcBtn.style.display='block';
+  const bResetBtn=document.getElementById('btn-block-reset'); if(bResetBtn) bResetBtn.style.display='block';
   toast('✅ 블록 저장 완료! 브로드캐스트하면 검증자들에게 전파됩니다.');
 }
 
@@ -2131,9 +2132,10 @@ function renderActionCard(b, myRole, color, fin){
         +'<label for="att-sig">서명</label>'
         +'<select id="att-sig"><option value="unsigned">서명 안됨</option><option value="signed" selected>서명됨</option></select>'
         +'<div class="warn-box">⚠️ 한 번 제출한 Attestation은 수정 불가 · 잘못된 투표 시 슬래싱 페널티 (0.01 ETH)</div>'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-top:10px;">'
         +'<button class="btn btn-blue" onclick="saveAttestation()">💾 저장하기</button>'
-        +'<button class="btn-bc" id="btn-att-bc" onclick="broadcastAttestation()">📡 브로드캐스트</button></div>'
+        +'<button class="btn-bc" id="btn-att-bc" onclick="broadcastAttestation()">📡 브로드캐스트</button>'
+        +'<button class="btn" onclick="resetAttForm()" style="background:#21262d;color:#8b949e;border:1px solid #30363d;padding:0 14px;border-radius:6px;font-size:12px;cursor:pointer;" title="입력 초기화">↺</button></div>'
         +'<div id="att-result" style="display:none;margin-top:10px;">'
         +'<div class="result-title">💾 저장된 Attestation</div>'
         +'<div class="result-box" id="att-result-content"></div>'
@@ -2432,6 +2434,7 @@ function resetBlockForm(){
   const bResult=document.getElementById('b-result');        if(bResult) bResult.style.display='none';
   const bBcBtn=document.getElementById('btn-block-bc');
   if(bBcBtn){ bBcBtn.style.display='none'; bBcBtn.disabled=false; bBcBtn.textContent='📡 블록 브로드캐스트 (검증자에게 전파)'; bBcBtn.style.background=''; }
+  const bResetBtn2=document.getElementById('btn-block-reset'); if(bResetBtn2) bResetBtn2.style.display='none';
   // 저장 버튼 원상복구
   const saveBtn=document.querySelector('#block-proposer-form .btn-green');
   if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity=''; }
