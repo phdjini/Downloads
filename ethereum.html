@@ -926,8 +926,17 @@ function showBlockSimPanel(){
   if(noRole) noRole.style.display='none';
   if(form){
     form.style.display='block';
-    // 슬롯 선택 드롭다운 채우기
     fillBSimSlotSel();
+    // 제안자가 아니므로 저장/브로드캐스트 버튼 숨김
+    const saveBtn=form.querySelector('.btn-green');
+    const bcBtn=document.getElementById('btn-block-bc');
+    const result=document.getElementById('b-result');
+    if(saveBtn) saveBtn.style.display='none';
+    if(bcBtn)   bcBtn.style.display='none';
+    if(result)  result.style.display='none';
+    // 시뮬레이션 전용 안내
+    const banner=document.getElementById('b-slot-banner');
+    if(banner) banner.innerHTML='<div style="background:#1f2d3d;border:1px solid #388bfd;border-radius:6px;padding:8px 12px;font-size:11px;color:#79c0ff;">🧮 시뮬레이션 전용 모드 — 루트 계산만 가능합니다 (저장/브로드캐스트 불가)</div>';
     toast('루트 시뮬레이션 도구가 열렸습니다. 슬롯을 선택해 계산하세요.');
   }
 }
@@ -1724,29 +1733,32 @@ function saveBlock(){
     +'StateRoot : '+block.stateRoot+'\n'
     +'BlockRoot : '+block.blockRoot+'\n'
     +'Signature : '+block.signature;
-  document.getElementById('b-result').style.display='block';
-  document.getElementById('btn-block-bc').style.display='block';
+  const bResult=document.getElementById('b-result');
+  const bBcBtn=document.getElementById('btn-block-bc');
+  if(bResult) bResult.style.display='block';
+  if(bBcBtn)  bBcBtn.style.display='block';
   toast('✅ 블록 저장 완료! 브로드캐스트하면 검증자들에게 전파됩니다.');
 }
 
 function broadcastBlock(){
   if(!savedBlockData){toast('먼저 저장 및 계산하기를 눌러주세요.',true);return;}
   const payload=Object.assign({},savedBlockData,{broadcastBy:ME.name,broadcastAt:new Date().toISOString()});
+  const bbtn=document.getElementById('btn-block-bc');
+  if(bbtn){ bbtn.disabled=true; bbtn.textContent='📡 전송 중...'; bbtn.style.background='linear-gradient(135deg,#444,#333)'; }
+  const btnTimer=setTimeout(()=>{
+    if(bbtn){ bbtn.textContent='✅ 브로드캐스트 완료'; bbtn.style.background='linear-gradient(135deg,#1a7f37,#0d5c23)'; bbtn.disabled=true; }
+  }, 2000);
   function onDone(){
+    clearTimeout(btnTimer);
+    if(bbtn){ bbtn.textContent='✅ 브로드캐스트 완료'; bbtn.style.background='linear-gradient(135deg,#1a7f37,#0d5c23)'; bbtn.disabled=true; }
     toast('📡 블록 #'+savedBlockData.blockNumber+' 브로드캐스트! 검증자: '+savedBlockData.committeeNames.join(', '));
-    const bbtn=document.getElementById('btn-block-bc');
-    bbtn.textContent='✅ 브로드캐스트 완료';
-    bbtn.style.background='linear-gradient(135deg,#1a7f37,#0d5c23)';
-    bbtn.disabled=true;
   }
   if(firebaseOK && db){
-    db.ref(PATH.blocks).push(payload).then(onDone).catch(e=>{
-      const key='id_'+(++localIdSeq); localDB.blocks[key]=payload;
-      fbBlocksCache[key]=payload; renderAttBlockList(); onDone();
-    });
+    db.ref(PATH.blocks).push(payload)
+      .then(onDone)
+      .catch(()=>{ const key='id_'+(++localIdSeq); localDB.blocks[key]=payload; fbBlocksCache[key]=payload; renderAttBlockList(); onDone(); });
   } else {
-    const key='id_'+(++localIdSeq); localDB.blocks[key]=payload;
-    fbBlocksCache[key]=payload; renderAttBlockList(); onDone();
+    const key='id_'+(++localIdSeq); localDB.blocks[key]=payload; fbBlocksCache[key]=payload; renderAttBlockList(); onDone();
   }
 }
 
