@@ -300,7 +300,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="20260314-FIX3">
+<div id="status-bar" data-ver="20260314-FIX4">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -310,7 +310,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
   <div style="display:flex;gap:10px;align-items:center;color:#6e7681;font-size:11px;">
     <span><span class="sb-dot"></span>Firebase 실시간 동기화</span>
     <span id="sb-slot-label" style="color:#8b949e;"></span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">v20260314-FIX3</span>
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">v20260314-FIX4</span>
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -549,7 +549,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 
       <!-- 직전 슬롯 ATT 집계 -->
       <div class="card">
-        <div class="card-title">🗳️ 직전 슬롯 Attestation 집계 
+        <div class="card-title">🗳️ 직전 슬롯 Attestation 집계
           <span style="font-size:10px;font-weight:normal;color:#6e7681;margin-left:6px;">이 블록에 포함된 투표</span>
         </div>
         <div id="att-prev-atts-summary"><span style="color:#6e7681;font-size:11px;">블록을 선택하세요</span></div>
@@ -761,11 +761,8 @@ var attFilter      = "all"; // 블록 목록 필터
 /* ════════════════════════════════════════════
    유틸
 ════════════════════════════════════════════ */
-function _posSimHash(s){
-  let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h=h&h;}
-  return '0x'+Math.abs(h).toString(16).padStart(64,'0');
-}
-function shortHash(s){ const h=_posSimHash(s); return h.substring(0,10)+'…'+h.substring(60); }
+/* __eth_pos_hash__ defined after Firebase SDK */
+function shortHash(s){ const h=__eth_pos_hash__(s); return h.substring(0,10)+'…'+h.substring(60); }
 
 function toast(msg, isErr=false){
   const el=document.getElementById('toast');
@@ -923,7 +920,7 @@ function initBlockTab(){
   const bn=document.getElementById('b-number');
   if(bn) bn.value=ps.globalSlot;
   const randaoEl=document.getElementById('b-randao');
-  if(randaoEl) randaoEl.textContent=_posSimHash('RANDAO:'+ME.addr+':'+ps.globalSlot);
+  if(randaoEl) randaoEl.textContent=__eth_pos_hash__('RANDAO:'+ME.addr+':'+ps.globalSlot);
   const attList=document.getElementById('b-att-list');
   if(attList) attList.innerHTML=committee.map(m=>'<span style="display:inline-block;background:#161b22;border:1px solid #30363d;border-radius:4px;padding:2px 7px;margin:2px;font-size:10px;color:'+color+';">'+m.name+'</span>').join('');
 
@@ -1070,7 +1067,7 @@ function generateEpochs(seed){
     for(let s=0;s<SPE;s++){
       const members=sh.slice(s*PPS,(s+1)*PPS);
       // simpleHash로 제안자 결정 — 정수 오버플로우 방지
-      const pi=parseInt(_posSimHash('proposer:'+seed+':'+e+':'+s),16)%PPS;
+      const pi=parseInt(__eth_pos_hash__('proposer:'+seed+':'+e+':'+s),16)%PPS;
       slots.push({members,proposerAddr:members[pi].addr});
     }
     res.push(slots);
@@ -1376,7 +1373,7 @@ function saveTx(){
     sigText:sg.options[sg.selectedIndex].text
   };
   // Date.now() 없이 — 같은 입력은 항상 같은 해시
-  d.txHash = _posSimHash(d.from+d.to+d.value+d.nonce+d.gas+d.data);
+  d.txHash = __eth_pos_hash__(d.from+d.to+d.value+d.nonce+d.gas+d.data);
 
   const rlp='RLP[nonce:'+d.nonce+', to:'+d.to+', value:'+d.value+', data:'+d.data+']';
   const errBox=document.getElementById('tx-error-box');
@@ -1621,7 +1618,7 @@ function calcRandao(){
   const el=document.getElementById('b-randao');
   if(!el) return;
   if(!p){el.textContent='로그인 후 자동 계산';el.style.color='#6e7681';return;}
-  el.textContent=_posSimHash('BLS_Sign('+p+'_privkey,epoch='+Math.floor(slot/SPE)+')');el.style.color='#56d364';
+  el.textContent=__eth_pos_hash__('BLS_Sign('+p+'_privkey,epoch='+Math.floor(slot/SPE)+')');el.style.color='#56d364';
 }
 function calcStateRoot(){
   const el = document.getElementById('b-state-root');
@@ -1629,7 +1626,7 @@ function calcStateRoot(){
   const ps   = window._currentProposerSlot;
   const num  = document.getElementById('b-number') ? document.getElementById('b-number').value : (ps?ps.globalSlot:'');
   const txStr= collectBlockTx();
-  el.textContent = _posSimHash('state_'+num+'_'+txStr);
+  el.textContent = __eth_pos_hash__('state_'+num+'_'+txStr);
   el.style.color = '#56d364';
 }
 function calcBodyRoot(){
@@ -1646,13 +1643,13 @@ function calcBodyRoot(){
   }
   const el = document.getElementById('b-body-root');
   if(!el) return;
-  el.textContent = _posSimHash(tx+att);
+  el.textContent = __eth_pos_hash__(tx+att);
   el.style.color = '#56d364';
 }
 function calcBlockRoot(){
   calcStateRoot();calcBodyRoot();
   const proposerVal=ME?ME.addr:(document.getElementById('b-proposer-display')?document.getElementById('b-proposer-display').textContent:'');
-  const h=_posSimHash((document.getElementById('b-parent').value||'')+(document.getElementById('b-number').value||'')+(proposerVal)+(document.getElementById('b-state-root').textContent||'')+(document.getElementById('b-body-root').textContent||''));
+  const h=__eth_pos_hash__((document.getElementById('b-parent').value||'')+(document.getElementById('b-number').value||'')+(proposerVal)+(document.getElementById('b-state-root').textContent||'')+(document.getElementById('b-body-root').textContent||''));
   const el=document.getElementById('b-block-root');el.textContent=h;el.style.color='#56d364';
 }
 
@@ -1683,7 +1680,7 @@ function saveBlock(){
     randao:     document.getElementById('b-randao').textContent,
     committee:  committee.map(m=>m.addr),
     committeeNames: committee.map(m=>m.name),
-    signature:  _posSimHash('SIG:'+ME.addr+':'+ps.globalSlot+':'+Date.now()),
+    signature:  __eth_pos_hash__('SIG:'+ME.addr+':'+ps.globalSlot+':'+Date.now()),
     createdAt:  new Date().toISOString()
   };
 
@@ -2228,17 +2225,17 @@ function runSimulation(){
     ? txs.map((tx,i)=>'TX'+(i+1)+': '+(tx.fromText||tx.from||'?')+' → '+(tx.toText||tx.to||'?')+(tx.data&&tx.data!='(없음)'?' '+tx.data:'')+(tx.value?' ('+tx.value+')':'')).join('\n')
     : '(없음)';
 
-  // StateRoot: _posSimHash('state_' + blockNumber + '_' + txStr)
-  const myStateRoot  = _posSimHash('state_'+b.blockNumber+'_'+txStr);
+  // StateRoot: __eth_pos_hash__('state_' + blockNumber + '_' + txStr)
+  const myStateRoot  = __eth_pos_hash__('state_'+b.blockNumber+'_'+txStr);
 
-  // BodyRoot: _posSimHash(txStr + att)
+  // BodyRoot: __eth_pos_hash__(txStr + att)
   // att = 위원회 주소 pending 형식 (브로드캐스트 시점엔 아직 투표 없음)
   const committee = b.committee||[];
   const att = committee.map(a=>'{"validator":"'+a+'","vote":"pending"}').join('\n') || '(없음)';
-  const myBodyRoot   = _posSimHash(txStr+att);
+  const myBodyRoot   = __eth_pos_hash__(txStr+att);
 
-  // BlockRoot: _posSimHash(parentRoot + blockNumber + proposer + stateRoot + bodyRoot)
-  const myBlockRoot  = _posSimHash((b.parentRoot||'')+(b.blockNumber||'')+(b.proposer||'')+myStateRoot+myBodyRoot);
+  // BlockRoot: __eth_pos_hash__(parentRoot + blockNumber + proposer + stateRoot + bodyRoot)
+  const myBlockRoot  = __eth_pos_hash__((b.parentRoot||'')+(b.blockNumber||'')+(b.proposer||'')+myStateRoot+myBodyRoot);
 
   /* ── 3. 렌더 ── */
   // 잔액
@@ -2432,7 +2429,15 @@ function resetAttForm(){
   }
 }
 
-// 1) 즉시 실행 (script가 </body> 직전이므로 DOM 준비됨)
+// 1) 즉시 실행 (script가 <script>
+/* 해시 함수 — Firebase SDK 로드 이후 정의하여 덮어쓰기 방지 */
+window.__eth_pos_hash__ = function(s){
+  let h=5381;
+  for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))&0x7fffffff;
+  return h.toString(16).padStart(8,'0');
+};
+</script>
+</body> 직전이므로 DOM 준비됨)
 (function(){
   try { initLoginForm(); } catch(e) { console.error('initLoginForm 즉시 실패:', e); }
 })();
@@ -2452,6 +2457,14 @@ window.addEventListener('load', function(){
     try { initLoginForm(); } catch(e) { console.error('initLoginForm load 실패:', e); }
   }
 });
+</script>
+<script>
+/* 해시 함수 — Firebase SDK 로드 이후 정의하여 덮어쓰기 방지 */
+window.__eth_pos_hash__ = function(s){
+  let h=5381;
+  for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))&0x7fffffff;
+  return h.toString(16).padStart(8,'0');
+};
 </script>
 </body>
 </html>
