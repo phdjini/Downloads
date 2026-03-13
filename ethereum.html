@@ -1466,6 +1466,7 @@ function broadcastTx(){
     if(timeEl) timeEl.textContent+='  |  📡 '+new Date().toLocaleString('ko-KR');
     toast('📡 TX 브로드캐스트 완료! ('+via+')');
     window._lastTx=null;
+    resetTxForm();
   }
 
   if(firebaseOK && db){
@@ -1752,7 +1753,7 @@ function broadcastBlock(){
     clearTimeout(btnTimer);
     if(bbtn){ bbtn.textContent='✅ 브로드캐스트 완료'; bbtn.style.background='linear-gradient(135deg,#1a7f37,#0d5c23)'; bbtn.disabled=true; }
     toast('📡 블록 #'+savedBlockData.blockNumber+' 브로드캐스트! 검증자: '+savedBlockData.committeeNames.join(', '));
-    setTimeout(resetBlockForm, 1500);
+    resetBlockForm();
   }
   if(firebaseOK && db){
     db.ref(PATH.blocks).push(payload)
@@ -2382,7 +2383,7 @@ function broadcastAttestation(){
   });
   function onDone(){
     toast('📡 Attestation 브로드캐스트! Slot #'+d.slot+' / '+d.vote);
-    setTimeout(resetAttForm, 1500);
+    resetAttForm();
     const attBcBtn=document.getElementById('btn-att-bc');
     if(attBcBtn){
       attBcBtn.textContent='✅ 브로드캐스트 완료';
