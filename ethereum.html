@@ -522,7 +522,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
       <!-- 블록 헤더 -->
       <div class="card">
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>📋 블록 상세 </span>
+          <span>📋 블록 상세</span>
           <div style="display:flex;gap:4px;align-items:center;">
             <span id="att-slot-badge"></span>
             <span id="att-finalized-badge"></span>
@@ -767,8 +767,7 @@ function __posHash(s){
   for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))&0x7fffffff;
   return h.toString(16).padStart(8,'0');
 }
-const __posHash=__posHash;
-function shortHash(s){ const h=__posHash(s); return h.substring(0,10)+'…'+h.substring(60); }
+function shortHash(s){ const h=__posHash(s); return h.substring(0,6)+'…'; }
 
 function toast(msg, isErr=false){
   const el=document.getElementById('toast');
