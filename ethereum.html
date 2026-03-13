@@ -911,7 +911,7 @@ function initBlockTab(){
   // 슬롯 배너
   const banner=document.getElementById('b-slot-banner');
   if(banner) banner.innerHTML='<div style="border-left:4px solid '+color+';padding:8px 12px;background:'+color+'0d;border-radius:0 6px 6px 0;margin-bottom:4px;">'
-    +'<span style="color:'+color+';font-weight:bold;font-size:12px;">⭐ Slot #'+ps.globalSlot+' — Epoch #'+(ps.epochIdx+1)+' · Slot '+(ps.slotIdx+1)+'</span><br>'
+    +'<span style="color:'+color+';font-weight:bold;font-size:13px;">⭐ 나는 Epoch #'+(ps.epochIdx+1)+' Slot #'+(ps.slotIdx+1)+' (전체 Slot #'+ps.globalSlot+')의 블록 제안자</span><br>'
     +'<span style="font-size:11px;color:#8b949e;">검증 위원회: </span>'
     +committee.map(m=>'<span style="font-size:11px;color:'+color+';">'+m.name+'</span>').join(' · ')
     +'</div>';
