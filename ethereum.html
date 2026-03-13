@@ -300,7 +300,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="20260314-FIXED">
+<div id="status-bar" data-ver="20260314-FIX2">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -310,7 +310,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
   <div style="display:flex;gap:10px;align-items:center;color:#6e7681;font-size:11px;">
     <span><span class="sb-dot"></span>Firebase 실시간 동기화</span>
     <span id="sb-slot-label" style="color:#8b949e;"></span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">v20260314-FIXED</span>
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">v20260314-FIX2</span>
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -410,7 +410,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
       
     </div>
     <!-- 제안자일 때 양식 -->
-    <div id="block-proposer-form" style="display:none;">
+    <div id="block-proposer-form" style="display:none !important;">
       <div class="card">
         <div class="card-title">🧱 블록 생성</div>
         <div id="b-slot-banner" style="margin-bottom:12px;"></div>
@@ -426,10 +426,6 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
         <div id="b-slot-txs" style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px;margin-bottom:10px;max-height:160px;overflow-y:auto;">
           <div style="color:#6e7681;font-size:11px;">멤풀에서 이 슬롯의 TX를 불러오는 중...</div>
         </div>
-        <label for="b-sim-slot-sel">시뮬레이션 슬롯 선택 (선택사항)</label>
-        <select id="b-sim-slot-sel" onchange="onBSimSlotChange()" style="margin-bottom:8px;">
-          <option value="">-- 슬롯 선택 (직접 계산용) --</option>
-        </select>
         <div class="info-lbl" style="font-size:11px;color:#8b949e;margin-bottom:4px;">Attestations (검증 위원회 5명)</div>
         <div id="b-att-list" style="margin-bottom:5px;font-size:11px;color:#6e7681;"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:12px;">
@@ -873,8 +869,9 @@ function initBlockTab(){
   if(!noRole||!form) return;
 
   // 항상 둘 다 숨기고 시작
-  noRole.style.cssText='display:none';
-  form.style.cssText='display:none';
+  noRole.style.display='none';
+  form.style.display='none';
+  form.style.setProperty('display','none','important');
   window._currentProposerSlot=null;
 
   // 제안자 슬롯 탐색
@@ -903,8 +900,9 @@ function initBlockTab(){
   }
 
   // 제안자 — 폼 표시
-  noRole.style.cssText='display:none';
-  form.style.cssText='display:block';
+  noRole.style.display='none';
+  form.style.removeProperty('display');
+  form.style.display='block';
   window._currentProposerSlot=ps;
 
   const saveBtn=form.querySelector('.btn-green');
