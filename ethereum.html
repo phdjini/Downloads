@@ -1106,7 +1106,8 @@ function generateEpochs(seed){
     const sh=seededShuffle(PARTICIPANTS,seed+e*999983); const slots=[];
     for(let s=0;s<SPE;s++){
       const members=sh.slice(s*PPS,(s+1)*PPS);
-      const pi=Math.abs((seed+e*31+s*17)*1664525)%PPS;
+      // simpleHash로 제안자 결정 — 정수 오버플로우 방지
+      const pi=parseInt(simpleHash('proposer:'+seed+':'+e+':'+s),16)%PPS;
       slots.push({members,proposerAddr:members[pi].addr});
     }
     res.push(slots);
