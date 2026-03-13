@@ -300,7 +300,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="20260313-2209">
+<div id="status-bar" data-ver="20260313-2222">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -310,7 +310,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
   <div style="display:flex;gap:10px;align-items:center;color:#6e7681;font-size:11px;">
     <span><span class="sb-dot"></span>Firebase 실시간 동기화</span>
     <span id="sb-slot-label" style="color:#8b949e;"></span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">v20260313</span>
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">v20260313c</span>
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -918,12 +918,7 @@ function initBlockTab(){
   const color=SC[(ps.globalSlot-1)%SC.length];
   const committee=ps.slot.members.filter(m=>m.addr!==ME.addr);
 
-  const banner=document.getElementById('b-slot-banner');
-  if(banner) banner.innerHTML='<div style="border-left:4px solid '+color+';padding:8px 12px;background:'+color+'0d;border-radius:0 6px 6px 0;margin-bottom:4px;">'
-    +'<span style="color:'+color+';font-weight:bold;font-size:13px;">⭐ 나는 Epoch #'+(ps.epochIdx+1)+' Slot #'+(ps.slotIdx+1)+' (전체 Slot #'+ps.globalSlot+')의 블록 제안자</span><br>'
-    +'<span style="font-size:11px;color:#8b949e;">검증 위원회: </span>'
-    +committee.map(m=>'<span style="font-size:11px;color:'+color+';">'+m.name+'</span>').join(' · ')
-    +'</div>';
+  if(banner) banner.innerHTML='<div style="border:2px solid '+color+';border-radius:8px;padding:12px 16px;background:'+color+'12;margin-bottom:8px;"><div style="font-size:15px;font-weight:bold;color:'+color+';margin-bottom:6px;">⭐ 블록 제안자 슬롯</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;"><div style="background:#0d1117;border-radius:5px;padding:6px 10px;text-align:center;"><div style="font-size:10px;color:#6e7681;">Epoch</div><div style="font-size:16px;font-weight:bold;color:'+color+';">'+( ps.epochIdx+1)+'</div></div><div style="background:#0d1117;border-radius:5px;padding:6px 10px;text-align:center;"><div style="font-size:10px;color:#6e7681;">Slot</div><div style="font-size:16px;font-weight:bold;color:'+color+';">'+( ps.slotIdx+1)+'</div></div><div style="background:#0d1117;border-radius:5px;padding:6px 10px;text-align:center;"><div style="font-size:10px;color:#6e7681;">전체 Slot</div><div style="font-size:16px;font-weight:bold;color:#f78166;">#'+ps.globalSlot+'</div></div></div><div style="font-size:11px;color:#8b949e;">검증 위원회: '+committee.map(m=>'<span style="color:'+color+';">'+m.name+'</span>').join(' · ')+'</div></div>';
 
   const pd=document.getElementById('b-proposer-display');
   if(pd) pd.textContent=ME.addr+'  ('+ME.name+')';
@@ -1062,10 +1057,11 @@ function fillSelect(sel,addC,ph){
 const EPOCHS=3, SPE=6, PPS=6;
 
 function seededShuffle(arr,seed){
-  const a=[...arr]; let s=seed;
+  const a=[...arr];
+  let s=seed>>>0; // unsigned 32bit — 브라우저/Node.js 동일 보장
   for(let i=a.length-1;i>0;i--){
-    s=(s*1664525+1013904223)&0xffffffff;
-    const j=Math.abs(s)%(i+1); [a[i],a[j]]=[a[j],a[i]];
+    s=(Math.imul(s,1664525)+1013904223)>>>0; // Math.imul: 정확한 32비트 곱셈
+    const j=s%(i+1); [a[i],a[j]]=[a[j],a[i]];
   }
   return a;
 }
