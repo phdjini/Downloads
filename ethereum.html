@@ -310,6 +310,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
   <div style="display:flex;gap:10px;align-items:center;color:#6e7681;font-size:11px;">
     <span><span class="sb-dot"></span>Firebase 실시간 동기화</span>
     <span id="sb-slot-label" style="color:#8b949e;"></span>
+    <span id="sb-ver" style="font-size:10px;color:#484f58;">v20260313</span>
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -800,9 +801,7 @@ function doLogin(){
   // UI 전환
   document.getElementById('login-overlay').style.display='none';
   const sb=document.getElementById('status-bar'); sb.style.display='flex';
-  // 버전 표시
-  const verEl=document.getElementById('sb-ver');
-  if(verEl) verEl.textContent='v20260313';
+
   document.getElementById('status-bar').style.flexShrink='0';
   document.getElementById('main-tab-bar').style.display='flex';
   document.getElementById('tab-epoch').style.display='flex';
