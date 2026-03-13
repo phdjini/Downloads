@@ -2406,6 +2406,7 @@ function broadcastAttestation(){
 // 참여자 리스트 — 3중 안전장치
 
 function resetTxForm(){
+  // 입력 필드 초기화
   const fields=['tx-to','tx-value','tx-nonce','tx-gas','tx-func','tx-sig','tx-slot-sel'];
   fields.forEach(id=>{
     const el=document.getElementById(id);
@@ -2413,34 +2414,37 @@ function resetTxForm(){
     if(el.tagName==='SELECT') el.selectedIndex=0;
     else el.value=el.defaultValue||'';
   });
-  const banner=document.getElementById('tx-slot-banner');
-  if(banner) banner.style.display='none';
-  const argWrap=document.getElementById('arg-hint-wrap');
-  if(argWrap) argWrap.style.display='none';
-  const result=document.getElementById('tx-result');
-  if(result) result.style.display='none';
+  const nonce=document.getElementById('tx-nonce'); if(nonce) nonce.value='0';
+  const gas=document.getElementById('tx-gas');     if(gas)   gas.value='0.1';
+  // 배너/결과 숨김
+  const banner=document.getElementById('tx-slot-banner');  if(banner)  banner.style.display='none';
+  const argWrap=document.getElementById('arg-hint-wrap');  if(argWrap) argWrap.style.display='none';
+  const result=document.getElementById('tx-result');       if(result)  result.style.display='none';
+  // 브로드캐스트 버튼 원상복구
+  const bcBtn=document.getElementById('btn-tx-bc');
+  if(bcBtn){ bcBtn.disabled=false; bcBtn.textContent='📡 TX 브로드캐스트 (36명 전파)'; bcBtn.style.background=''; }
   window._lastTx=null;
 }
 
 function resetBlockForm(){
   savedBlockData=null;
-  const bResult=document.getElementById('b-result');
+  // 결과/버튼 초기화
+  const bResult=document.getElementById('b-result');        if(bResult) bResult.style.display='none';
   const bBcBtn=document.getElementById('btn-block-bc');
-  if(bResult) bResult.style.display='none';
-  if(bBcBtn){ bBcBtn.style.display='none'; bBcBtn.textContent='📡 블록 브로드캐스트 (검증자에게 전파)'; bBcBtn.style.background=''; bBcBtn.disabled=false; }
-  const parent=document.getElementById('b-parent');
-  if(parent) parent.value='0xa1b2c3d4e5f67890...genesis';
+  if(bBcBtn){ bBcBtn.style.display='none'; bBcBtn.disabled=false; bBcBtn.textContent='📡 블록 브로드캐스트 (검증자에게 전파)'; bBcBtn.style.background=''; }
+  // 저장 버튼 원상복구
+  const saveBtn=document.querySelector('#block-proposer-form .btn-green');
+  if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity=''; }
+  // 입력 초기화
+  const parent=document.getElementById('b-parent'); if(parent) parent.value='0xa1b2c3d4e5f67890...genesis';
+  const bNum=document.getElementById('b-number');   if(bNum)   bNum.value='';
   ['b-state-root','b-body-root','b-block-root'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){ el.textContent='미계산'; el.style.color='#6e7681'; }
+    const el=document.getElementById(id); if(el){ el.textContent='미계산'; el.style.color='#6e7681'; }
   });
-  const randao=document.getElementById('b-randao');
-  if(randao) randao.textContent='자동 계산';
-  const sig=document.getElementById('b-sig');
-  if(sig) sig.textContent='저장 시 자동 계산';
-  // 슬롯 TX 목록 초기화
-  window._slotTxs=[];
-  window._prevSlotAtts=[];
+  const randao=document.getElementById('b-randao'); if(randao) randao.textContent='자동 계산';
+  const sig=document.getElementById('b-sig');       if(sig)    sig.textContent='저장 시 자동 계산';
+  // TX/ATT 목록 초기화
+  window._slotTxs=[]; window._prevSlotAtts=[];
   const slotTxs=document.getElementById('b-slot-txs');
   if(slotTxs) slotTxs.innerHTML='<div style="color:#6e7681;font-size:11px;">브로드캐스트 완료 — 새 슬롯을 선택하세요</div>';
   const prevAtts=document.getElementById('b-prev-atts');
@@ -2449,16 +2453,16 @@ function resetBlockForm(){
 
 function resetAttForm(){
   window._lastAtt=null;
-  const attResult=document.getElementById('att-result');
-  if(attResult) attResult.style.display='none';
-  const voteStatus=document.getElementById('vote-status');
-  if(voteStatus){ voteStatus.textContent='투표를 선택하세요'; voteStatus.style.color='#6e7681'; }
-  const vSupport=document.getElementById('v-support');
-  const vOppose=document.getElementById('v-oppose');
-  if(vSupport) vSupport.className='vote-btn';
-  if(vOppose)  vOppose.className='vote-btn';
   currentVote=null;
-  // 버튼은 완료 상태 유지 (재투표 방지)
+  // 투표 폼 초기화 (액션카드 재렌더)
+  if(selectedBlock){
+    const SC=['#e06c75','#e5c07b','#98c379','#56b6c2','#c678dd','#61afef','#a8d8ea','#79c0ff','#d2a8ff','#4ecdc4','#ffa657','#f7c6c7','#a5d6ff','#7ee787','#f2cc60','#ce93d8','#b392f0','#39d353'];
+    const color=SC[((selectedBlock.slot||1)-1)%SC.length];
+    const info=getSlotInfo(selectedBlock.slot);
+    const myRole=info?getMyRole(info):null;
+    const fin=isBlockFinalized(selectedBlock);
+    renderActionCard(selectedBlock, myRole, color, fin);
+  }
 }
 
 // 1) 즉시 실행 (script가 </body> 직전이므로 DOM 준비됨)
