@@ -878,6 +878,10 @@ function initBlockTab(){
   const form=document.getElementById('block-proposer-form');
   if(!noRole||!form) return;
 
+  // 탭 진입 시 항상 초기 상태로 리셋
+  noRole.style.display='none';
+  form.style.display='none';
+
   if(!ps){
     noRole.style.display='block'; form.style.display='none';
     let vSlots=[];
