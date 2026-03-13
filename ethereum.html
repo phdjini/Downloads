@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- version:20260313-2153 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -299,7 +300,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" style="display:none;background:#0d1117;border-bottom:1px solid #21262d;padding:6px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+<div id="status-bar" data-ver="20260313-2153" style="display:none;background:#0d1117;border-bottom:1px solid #21262d;padding:6px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -798,7 +799,10 @@ function doLogin(){
 
   // UI 전환
   document.getElementById('login-overlay').style.display='none';
-  document.getElementById('status-bar').style.display='flex';
+  const sb=document.getElementById('status-bar'); sb.style.display='flex';
+  // 버전 표시
+  const verEl=document.getElementById('sb-ver');
+  if(verEl) verEl.textContent='v20260313';
   document.getElementById('status-bar').style.flexShrink='0';
   document.getElementById('main-tab-bar').style.display='flex';
   document.getElementById('tab-epoch').style.display='flex';
