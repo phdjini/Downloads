@@ -300,7 +300,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="20260314-FIX2">
+<div id="status-bar" data-ver="20260314-FIX3">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -310,7 +310,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
   <div style="display:flex;gap:10px;align-items:center;color:#6e7681;font-size:11px;">
     <span><span class="sb-dot"></span>Firebase 실시간 동기화</span>
     <span id="sb-slot-label" style="color:#8b949e;"></span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">v20260314-FIX2</span>
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">v20260314-FIX3</span>
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -563,7 +563,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 
       <!-- 내 역할별 액션 -->
       <div class="card" id="att-action-card">
-        <div class="card-title" id="att-action-title">🎯 내 액션 </div>
+        <div class="card-title" id="att-action-title">🎯 내 액션</div>
         <div id="att-action-body"></div>
       </div>
 
@@ -761,11 +761,11 @@ var attFilter      = "all"; // 블록 목록 필터
 /* ════════════════════════════════════════════
    유틸
 ════════════════════════════════════════════ */
-function simpleHash(s){
+function _posSimHash(s){
   let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h=h&h;}
   return '0x'+Math.abs(h).toString(16).padStart(64,'0');
 }
-function shortHash(s){ const h=simpleHash(s); return h.substring(0,10)+'…'+h.substring(60); }
+function shortHash(s){ const h=_posSimHash(s); return h.substring(0,10)+'…'+h.substring(60); }
 
 function toast(msg, isErr=false){
   const el=document.getElementById('toast');
@@ -923,7 +923,7 @@ function initBlockTab(){
   const bn=document.getElementById('b-number');
   if(bn) bn.value=ps.globalSlot;
   const randaoEl=document.getElementById('b-randao');
-  if(randaoEl) randaoEl.textContent=simpleHash('RANDAO:'+ME.addr+':'+ps.globalSlot);
+  if(randaoEl) randaoEl.textContent=_posSimHash('RANDAO:'+ME.addr+':'+ps.globalSlot);
   const attList=document.getElementById('b-att-list');
   if(attList) attList.innerHTML=committee.map(m=>'<span style="display:inline-block;background:#161b22;border:1px solid #30363d;border-radius:4px;padding:2px 7px;margin:2px;font-size:10px;color:'+color+';">'+m.name+'</span>').join('');
 
@@ -1070,7 +1070,7 @@ function generateEpochs(seed){
     for(let s=0;s<SPE;s++){
       const members=sh.slice(s*PPS,(s+1)*PPS);
       // simpleHash로 제안자 결정 — 정수 오버플로우 방지
-      const pi=parseInt(simpleHash('proposer:'+seed+':'+e+':'+s),16)%PPS;
+      const pi=parseInt(_posSimHash('proposer:'+seed+':'+e+':'+s),16)%PPS;
       slots.push({members,proposerAddr:members[pi].addr});
     }
     res.push(slots);
@@ -1376,7 +1376,7 @@ function saveTx(){
     sigText:sg.options[sg.selectedIndex].text
   };
   // Date.now() 없이 — 같은 입력은 항상 같은 해시
-  d.txHash = simpleHash(d.from+d.to+d.value+d.nonce+d.gas+d.data);
+  d.txHash = _posSimHash(d.from+d.to+d.value+d.nonce+d.gas+d.data);
 
   const rlp='RLP[nonce:'+d.nonce+', to:'+d.to+', value:'+d.value+', data:'+d.data+']';
   const errBox=document.getElementById('tx-error-box');
@@ -1621,7 +1621,7 @@ function calcRandao(){
   const el=document.getElementById('b-randao');
   if(!el) return;
   if(!p){el.textContent='로그인 후 자동 계산';el.style.color='#6e7681';return;}
-  el.textContent=simpleHash('BLS_Sign('+p+'_privkey,epoch='+Math.floor(slot/SPE)+')');el.style.color='#56d364';
+  el.textContent=_posSimHash('BLS_Sign('+p+'_privkey,epoch='+Math.floor(slot/SPE)+')');el.style.color='#56d364';
 }
 function calcStateRoot(){
   const el = document.getElementById('b-state-root');
@@ -1629,7 +1629,7 @@ function calcStateRoot(){
   const ps   = window._currentProposerSlot;
   const num  = document.getElementById('b-number') ? document.getElementById('b-number').value : (ps?ps.globalSlot:'');
   const txStr= collectBlockTx();
-  el.textContent = simpleHash('state_'+num+'_'+txStr);
+  el.textContent = _posSimHash('state_'+num+'_'+txStr);
   el.style.color = '#56d364';
 }
 function calcBodyRoot(){
@@ -1646,13 +1646,13 @@ function calcBodyRoot(){
   }
   const el = document.getElementById('b-body-root');
   if(!el) return;
-  el.textContent = simpleHash(tx+att);
+  el.textContent = _posSimHash(tx+att);
   el.style.color = '#56d364';
 }
 function calcBlockRoot(){
   calcStateRoot();calcBodyRoot();
   const proposerVal=ME?ME.addr:(document.getElementById('b-proposer-display')?document.getElementById('b-proposer-display').textContent:'');
-  const h=simpleHash((document.getElementById('b-parent').value||'')+(document.getElementById('b-number').value||'')+(proposerVal)+(document.getElementById('b-state-root').textContent||'')+(document.getElementById('b-body-root').textContent||''));
+  const h=_posSimHash((document.getElementById('b-parent').value||'')+(document.getElementById('b-number').value||'')+(proposerVal)+(document.getElementById('b-state-root').textContent||'')+(document.getElementById('b-body-root').textContent||''));
   const el=document.getElementById('b-block-root');el.textContent=h;el.style.color='#56d364';
 }
 
@@ -1683,7 +1683,7 @@ function saveBlock(){
     randao:     document.getElementById('b-randao').textContent,
     committee:  committee.map(m=>m.addr),
     committeeNames: committee.map(m=>m.name),
-    signature:  simpleHash('SIG:'+ME.addr+':'+ps.globalSlot+':'+Date.now()),
+    signature:  _posSimHash('SIG:'+ME.addr+':'+ps.globalSlot+':'+Date.now()),
     createdAt:  new Date().toISOString()
   };
 
@@ -2228,17 +2228,17 @@ function runSimulation(){
     ? txs.map((tx,i)=>'TX'+(i+1)+': '+(tx.fromText||tx.from||'?')+' → '+(tx.toText||tx.to||'?')+(tx.data&&tx.data!='(없음)'?' '+tx.data:'')+(tx.value?' ('+tx.value+')':'')).join('\n')
     : '(없음)';
 
-  // StateRoot: simpleHash('state_' + blockNumber + '_' + txStr)
-  const myStateRoot  = simpleHash('state_'+b.blockNumber+'_'+txStr);
+  // StateRoot: _posSimHash('state_' + blockNumber + '_' + txStr)
+  const myStateRoot  = _posSimHash('state_'+b.blockNumber+'_'+txStr);
 
-  // BodyRoot: simpleHash(txStr + att)
+  // BodyRoot: _posSimHash(txStr + att)
   // att = 위원회 주소 pending 형식 (브로드캐스트 시점엔 아직 투표 없음)
   const committee = b.committee||[];
   const att = committee.map(a=>'{"validator":"'+a+'","vote":"pending"}').join('\n') || '(없음)';
-  const myBodyRoot   = simpleHash(txStr+att);
+  const myBodyRoot   = _posSimHash(txStr+att);
 
-  // BlockRoot: simpleHash(parentRoot + blockNumber + proposer + stateRoot + bodyRoot)
-  const myBlockRoot  = simpleHash((b.parentRoot||'')+(b.blockNumber||'')+(b.proposer||'')+myStateRoot+myBodyRoot);
+  // BlockRoot: _posSimHash(parentRoot + blockNumber + proposer + stateRoot + bodyRoot)
+  const myBlockRoot  = _posSimHash((b.parentRoot||'')+(b.blockNumber||'')+(b.proposer||'')+myStateRoot+myBodyRoot);
 
   /* ── 3. 렌더 ── */
   // 잔액
