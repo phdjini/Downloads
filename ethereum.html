@@ -301,7 +301,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="FINAL-002">
+<div id="status-bar" data-ver="FINAL-003">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -316,7 +316,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
       <button class="btn btn-sm" onclick="prevEpoch()" style="background:#21262d;color:#8b949e;padding:2px 8px;">◀</button>
       <button class="btn btn-sm" onclick="nextEpoch()" style="background:#1f6feb;color:#fff;padding:2px 8px;">다음 에폭 ▶</button>
     </span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-002
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-003
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -1544,8 +1544,11 @@ function broadcastTx(){
   const isReadOnly = d.data && d.data.startsWith('get(');
   if(!isReadOnly){
     eoaState[d.from].balance=(parseFloat(eoaState[d.from].balance)-parseETH(d.value)-parseETH(d.gas)).toFixed(4);
-    if(eoaState[d.to]!==undefined)
+    const isCA = d.to && (d.to.includes('Contract')||d.to.includes('Lending'));
+    if(!isCA && eoaState[d.to]!==undefined)
       eoaState[d.to].balance=(parseFloat(eoaState[d.to].balance)+parseETH(d.value)).toFixed(4);
+    // 컨트랙트 상태 업데이트
+    if(isCA) applyContractTx(d.to, d.data, parseETH(d.value), d.from);
     renderStateDB(); renderBalanceUI();
   }
 
@@ -1963,6 +1966,46 @@ function openSP(addr,ev){
   document.getElementById('sp-body').innerHTML=html;
   document.getElementById('sp-popup').classList.add('open');
   document.getElementById('sp-overlay').style.display='block';
+}
+
+function applyContractTx(addr, data, value, from){
+  const c = CONTRACTS.find(x=>x.addr===addr);
+  if(!c) return;
+
+  if(addr === '0xLending001'){
+    // deposit() — totalDeposits 증가, deposits[from] 증가
+    if(data && data.startsWith('deposit')){
+      const td = c.storageVars.find(v=>v.key==='totalDeposits');
+      if(td) td.value = (parseFloat(td.value)||0) + value;
+      // deposits[from] 개별 항목
+      const name = PARTICIPANTS.find(p=>p.addr===from)?.name||from;
+      upsertSV(addr, 'deposits_'+from, 'deposits['+name+'] (ETH)',
+        ((parseFloat(c.storageVars.find(v=>v.key==='deposits_'+from)?.value)||0)+value).toFixed(4));
+    }
+    // borrow(x) — totalBorrows 증가, borrows[from] 증가
+    else if(data && data.startsWith('borrow')){
+      const amount = parseFloat(data.replace(/[^0-9.]/g,''))||value;
+      const tb = c.storageVars.find(v=>v.key==='totalBorrows');
+      if(tb) tb.value = (parseFloat(tb.value)||0) + amount;
+      const name = PARTICIPANTS.find(p=>p.addr===from)?.name||from;
+      upsertSV(addr, 'borrows_'+from, 'borrows['+name+'] (ETH)',
+        ((parseFloat(c.storageVars.find(v=>v.key==='borrows_'+from)?.value)||0)+amount).toFixed(4));
+    }
+    // totalDeposits/totalBorrows 표시값도 업데이트
+    const td = c.storageVars.find(v=>v.key==='totalDeposits');
+    const tb = c.storageVars.find(v=>v.key==='totalBorrows');
+    if(td) td.value = parseFloat(td.value).toFixed(4);
+    if(tb) tb.value = parseFloat(tb.value).toFixed(4);
+  }
+
+  else if(addr === '0xContract001'){
+    // set(x) — storedData 업데이트
+    if(data && data.startsWith('set(')){
+      const val = data.match(/set\((\d+)\)/)?.[1]||'0';
+      const sv = c.storageVars.find(v=>v.key==='storedData');
+      if(sv) sv.value = val;
+    }
+  }
 }
 function updateSV(addr,idx,val){const c=CONTRACTS.find(x=>x.addr===addr);if(c)c.storageVars[idx].value=val;refreshSPRoot(addr);}
 function upsertSV(addr,key,label,val){
