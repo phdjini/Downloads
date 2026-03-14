@@ -301,7 +301,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="FINAL-008">
+<div id="status-bar" data-ver="FINAL-010">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -316,7 +316,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
       <button class="btn btn-sm" onclick="prevEpoch()" style="background:#21262d;color:#8b949e;padding:2px 8px;">◀</button>
       <button class="btn btn-sm" onclick="nextEpoch()" style="background:#1f6feb;color:#fff;padding:2px 8px;">다음 에폭 ▶</button>
     </span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-008
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-010
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -529,13 +529,6 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <div id="tab-att" class="tab-panel" style="display:none;">
   <!-- 왼쪽: 수신된 블록 목록 -->
   <div class="att-left">
-    <!-- 체크포인트 투표 패널 -->
-    <div style="margin-bottom:12px;">
-      <div style="font-size:12px;font-weight:bold;color:#e6edf3;margin-bottom:6px;">🔐 체크포인트 투표 (Casper FFG)</div>
-      <div style="font-size:11px;color:#6e7681;margin-bottom:8px;">에폭 완료 후 36명 전원이 체크포인트 블록에 투표합니다. 24명(2/3) 이상 SUPPORT → Justified</div>
-      <div id="checkpoint-vote-panel"><div style="color:#6e7681;font-size:11px;">로딩 중...</div></div>
-    </div>
-    <div style="border-top:1px solid #21262d;margin-bottom:12px;"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
       <div style="font-size:13px;font-weight:bold;color:#58a6ff;">📦 수신된 블록</div>
       <span style="font-size:10px;color:#6e7681;"><span class="sb-dot"></span>실시간</span>
@@ -552,9 +545,17 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
     </div>
 
     <div id="att-block-list"><div class="blk-empty">수신된 블록이 없습니다.</div></div>
+
+    <div style="border-top:1px solid #21262d;margin-top:12px;margin-bottom:12px;"></div>
+
+    <!-- 체크포인트 투표 패널 -->
+    <div>
+      <div style="font-size:12px;font-weight:bold;color:#e6edf3;margin-bottom:6px;">🔐 체크포인트 투표 (Casper FFG)</div>
+      <div style="font-size:11px;color:#6e7681;margin-bottom:8px;">에폭 완료 후 36명 전원이 체크포인트 블록에 투표합니다. 24명(2/3) 이상 SUPPORT → Justified</div>
+      <div id="checkpoint-vote-panel"><div style="color:#6e7681;font-size:11px;">로딩 중...</div></div>
+    </div>
   </div>
 
-  <!-- 오른쪽: 블록 상세 -->
   <div class="att-right">
     <div id="att-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#6e7681;">
       <div style="font-size:48px;margin-bottom:12px;">👈</div>
@@ -1247,62 +1248,93 @@ function renderCheckpointVotePanel(){
     const cp=getCheckpointBlock(e);
     const canVote=canVoteCheckpoint(e);
     const stats=getCheckpointStats(e);
-    const myVote=ME&&!ME.isOperator ? Object.values(checkpointCache['epoch'+e]||{}).find(v=>v.voter===ME.addr) : null;
+    const myVote=ME&&!ME.isOperator
+      ? Object.values(checkpointCache['epoch'+e]||{}).find(v=>v.voter===ME.addr)
+      : null;
     const isJ=stats.justified;
     const isF=epochFinalized[e]||false;
 
-    out+='<div style="background:#0d1117;border:1px solid '+(isF?'#238636':isJ?'#388bfd':'#21262d')+';border-radius:8px;padding:12px;margin-bottom:10px;">';
-    
+    // 카드
+    out+='<div style="background:#0d1117;border:2px solid '+(isF?'#238636':isJ?'#388bfd':canVote?c+'66':'#21262d')+';border-radius:8px;padding:12px;margin-bottom:10px;">';
+
     // 헤더
     out+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+      +'<div>'
       +'<span style="font-weight:bold;color:'+c+';font-size:13px;">Epoch #'+e+' 체크포인트</span>'
+      +'<span style="font-size:10px;color:#6e7681;margin-left:8px;">Slot #'+(( e-1)*SPE+1)+' 블록 기준</span>'
+      +'</div>'
       +(isF?'<span style="background:#0d2a0d;border:1px solid #238636;color:#56d364;border-radius:4px;padding:2px 8px;font-size:11px;">🏁 Finalized</span>'
         :isJ?'<span style="background:#1f3a5f;border:1px solid #388bfd;color:#79c0ff;border-radius:4px;padding:2px 8px;font-size:11px;">✅ Justified</span>'
-        :'<span style="background:#21262d;border:1px solid #30363d;color:#6e7681;border-radius:4px;padding:2px 8px;font-size:11px;">⏳ Pending</span>')
+        :canVote?'<span style="background:'+c+'22;border:1px solid '+c+'66;color:'+c+';border-radius:4px;padding:2px 8px;font-size:11px;font-weight:bold;">🗳️ 투표 가능!</span>'
+        :'<span style="background:#21262d;border:1px solid #30363d;color:#6e7681;border-radius:4px;padding:2px 8px;font-size:11px;">⏳ 에폭 진행중</span>')
       +'</div>';
 
-    // 체크포인트 블록 정보
-    out+='<div style="font-size:11px;color:#8b949e;margin-bottom:6px;">체크포인트: Slot #'+(( e-1)*SPE+1)+' 블록 '
-      +(cp?'<span style="color:#56d364;">확인됨</span>':'<span style="color:#f85149;">미생성</span>')+'</div>';
+    // 체크포인트 블록 상태
+    out+='<div style="font-size:11px;margin-bottom:8px;">'
+      +'체크포인트 블록: '+(cp
+        ?'<span style="color:#56d364;">✅ 생성됨</span> <span style="font-family:monospace;font-size:10px;color:#6e7681;">'+(cp.blockRoot||'').substring(0,14)+'...</span>'
+        :'<span style="color:#f85149;">❌ 미생성 (Slot #'+((e-1)*SPE+1)+' 블록 필요)</span>')
+      +'</div>';
 
-    // 득표 현황
-    out+='<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">'
-      +'<span style="color:#8b949e;">SUPPORT: <span style="color:#56d364;font-weight:bold;">'+stats.sup+'</span> / OPPOSE: <span style="color:#f85149;font-weight:bold;">'+stats.opp+'</span> / 미투표: <span style="color:#6e7681;">'+(stats.total-stats.sup-stats.opp)+'</span></span>'
-      +'<span style="color:'+(isJ?'#56d364':'#e3b341')+';font-weight:bold;">'+stats.pct+'% '+(isJ?'✅ 2/3 달성':'(2/3 미달)')+'</span>'
+    // 득표 프로그레스바
+    const needed=Math.ceil(PARTICIPANTS.length*2/3);
+    out+='<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">'
+      +'<span style="color:#8b949e;">SUPPORT: <span style="color:#56d364;font-weight:bold;">'+stats.sup+'</span>'
+      +' / OPPOSE: <span style="color:#f85149;font-weight:bold;">'+stats.opp+'</span>'
+      +' / 미투표: <span style="color:#6e7681;">'+(stats.total-stats.sup-stats.opp)+'</span></span>'
+      +'<span style="color:'+(isJ?'#56d364':'#e3b341')+';font-weight:bold;">'+stats.sup+'/'+needed+' '+(isJ?'✅ Justified!':'필요')+'</span>'
       +'</div>'
-      +'<div style="background:#21262d;border-radius:4px;height:10px;overflow:hidden;margin-bottom:8px;">'
-      +'<div style="background:'+(isJ?'#56d364':'#e3b341')+';width:'+stats.pct+'%;height:100%;transition:width .3s;"></div></div>';
+      +'<div style="background:#21262d;border-radius:4px;height:12px;overflow:hidden;margin-bottom:8px;position:relative;">'
+      +'<div style="background:'+(isJ?'#56d364':'#e3b341')+';width:'+Math.min(stats.pct,100)+'%;height:100%;transition:width .3s;"></div>'
+      +'<div style="position:absolute;right:0;top:0;height:100%;width:'+(100-Math.round(needed/stats.total*100))+'%;border-left:2px dashed #f0883e;" title="2/3 기준선"></div>'
+      +'</div>';
 
-    // 내 투표 or 투표 버튼
+    // 내 투표 상태 or 버튼
     if(!canVote){
-      out+='<div style="font-size:11px;color:#6e7681;text-align:center;padding:4px;">에폭 진행 중 — 완료 후 투표 가능</div>';
+      out+='<div style="text-align:center;font-size:11px;color:#6e7681;padding:6px;background:#161b22;border-radius:6px;">'
+        +'에폭 #'+e+' 진행 중 — 에폭 완료 후 투표 가능</div>';
+    } else if(ME && ME.isOperator){
+      out+='<div style="text-align:center;font-size:11px;color:#6e7681;padding:4px;">운영자는 체크포인트 투표 불가 (참여자 전용)</div>';
     } else if(myVote){
       const col=myVote.vote==='SUPPORT'?'#56d364':'#f85149';
-      out+='<div style="font-size:11px;text-align:center;color:'+col+';font-weight:bold;">✅ 내 투표: '+myVote.vote+'</div>';
-    } else if(ME && !ME.isOperator){
-      out+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
-        +'<button data-ep="'+e+'" data-v="SUPPORT" onclick="castCheckpointVote(+this.dataset.ep,this.dataset.v)" style="background:#1a3a1a;border:1px solid #238636;color:#56d364;border-radius:6px;padding:8px;cursor:pointer;font-size:12px;font-weight:bold;">✅ SUPPORT<br><span style="font-size:10px;font-weight:normal;">이 에폭 블록들이 유효함</span></button>'
-        +'<button data-ep="'+e+'" data-v="OPPOSE" onclick="castCheckpointVote(+this.dataset.ep,this.dataset.v)" style="background:#3a1a1a;border:1px solid #b62324;color:#f85149;border-radius:6px;padding:8px;cursor:pointer;font-size:12px;font-weight:bold;">❌ OPPOSE<br><span style="font-size:10px;font-weight:normal;">문제 있음</span></button>'
-        +'</div>';
+      out+='<div style="text-align:center;padding:8px;background:'+(myVote.vote==='SUPPORT'?'#0d2a0d':'#2a0d0d')+';border-radius:6px;">'
+        +'<span style="color:'+col+';font-weight:bold;font-size:13px;">내 투표: '+myVote.vote+'</span>'
+        +'<span style="font-size:10px;color:#6e7681;margin-left:8px;">'+new Date(myVote.votedAt).toLocaleString('ko-KR')+'</span></div>';
+    } else {
+      out+='<div style="background:#1f2d3d;border:1px solid #388bfd;border-radius:6px;padding:10px;margin-bottom:6px;">'
+        +'<div style="font-size:11px;color:#79c0ff;font-weight:bold;margin-bottom:8px;">🗳️ Epoch #'+e+' 체크포인트에 투표하세요</div>'
+        +'<div style="font-size:10px;color:#6e7681;margin-bottom:8px;">이 에폭의 모든 블록이 유효한지 검증 후 투표</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+        +'<button data-ep="'+e+'" data-v="SUPPORT" onclick="castCheckpointVote(+this.dataset.ep,this.dataset.v)" '
+        +'style="background:#1a3a1a;border:2px solid #238636;color:#56d364;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:bold;">'
+        +'✅ SUPPORT<br><span style="font-size:10px;font-weight:normal;color:#8b949e;">유효함 (찬성)</span></button>'
+        +'<button data-ep="'+e+'" data-v="OPPOSE" onclick="castCheckpointVote(+this.dataset.ep,this.dataset.v)" '
+        +'style="background:#3a1a1a;border:2px solid #b62324;color:#f85149;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:bold;">'
+        +'❌ OPPOSE<br><span style="font-size:10px;font-weight:normal;color:#8b949e;">문제 있음 (반대)</span></button>'
+        +'</div></div>';
     }
 
-    // 투표자 목록
+    // 투표자 현황 (접기/펼치기)
     const votes=Object.values(checkpointCache['epoch'+e]||{});
     if(votes.length){
-      out+='<div style="margin-top:8px;max-height:80px;overflow-y:auto;">';
-      votes.forEach(v=>{
-        const col=v.vote==='SUPPORT'?'#56d364':'#f85149';
-        out+='<div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0;border-bottom:1px solid #21262d33;">'
-          +'<span style="color:#8b949e;">'+v.voterName+'</span>'
-          +'<span style="color:'+col+';font-weight:bold;">'+v.vote+'</span></div>';
+      // 투표한 사람
+      out+='<div style="margin-top:8px;">'
+        +'<div style="font-size:10px;color:#6e7681;margin-bottom:4px;">투표 현황 ('+votes.length+'/36)</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+      PARTICIPANTS.forEach(p=>{
+        const v=votes.find(x=>x.voter===p.addr);
+        const col=v?(v.vote==='SUPPORT'?'#56d364':'#f85149'):'#484f58';
+        const bg=v?(v.vote==='SUPPORT'?'#0d2a0d':'#2a0d0d'):'#161b22';
+        out+='<span style="background:'+bg+';border:1px solid '+col+'44;border-radius:3px;padding:1px 5px;font-size:9px;color:'+col+';">'
+          +p.name+(v?'':' ⏳')+'</span>';
       });
-      out+='</div>';
+      out+='</div></div>';
     }
 
-    out+='</div>';
+    out+='</div>'; // 카드 닫기
   }
 
-  el.innerHTML=out;
+  el.innerHTML=out||'<div style="color:#6e7681;font-size:11px;">블록이 생성되면 체크포인트 투표가 시작됩니다.</div>';
 }
 
 /* ════ 블록 생성 탭 초기화 ════ */
