@@ -301,7 +301,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="FINAL-004">
+<div id="status-bar" data-ver="FINAL-005">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -316,7 +316,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
       <button class="btn btn-sm" onclick="prevEpoch()" style="background:#21262d;color:#8b949e;padding:2px 8px;">◀</button>
       <button class="btn btn-sm" onclick="nextEpoch()" style="background:#1f6feb;color:#fff;padding:2px 8px;">다음 에폭 ▶</button>
     </span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-004
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-005
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -1394,8 +1394,8 @@ function fillTxSlotSel(){
   const o=document.createElement('option');
   o.value=gs;
   o.textContent='Epoch '+currentEpoch+' · Slot '+currentSlot+'  (전체 Slot #'+gs+')';
-  o.selected=true;
   sel.appendChild(o);
+  sel.value = String(gs); // 직접 선택값 설정
 }
 
 function onTxSlotChange(){
@@ -1599,7 +1599,10 @@ function broadcastTx(){
     renderStateDB(); renderBalanceUI();
   }
 
-  const slotId = parseInt((document.getElementById('tx-slot-sel')||{}).value)||0;
+  const slotSelEl = document.getElementById('tx-slot-sel');
+  let slotId = parseInt(slotSelEl?.value)||0;
+  // slotId 미설정 시 현재 슬롯으로 자동 설정
+  if(!slotId) slotId = (currentEpoch-1)*SPE + currentSlot;
   const payload = Object.assign({}, d, {slotId, broadcastBy:ME.name, broadcastAt:new Date().toISOString()});
 
   // 버튼 → 전송 중
