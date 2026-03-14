@@ -832,6 +832,9 @@ function doLogin(){
     if(!ME){toast('참여자를 찾을 수 없습니다.',true);return;}
   }
 
+  // 세션 저장 (F5 새로고침 유지)
+  sessionStorage.setItem('pos_login_name', name);
+
   // UI 전환
   document.getElementById('login-overlay').style.display='none';
   const sb=document.getElementById('status-bar'); sb.style.display='flex';
@@ -874,6 +877,7 @@ function doLogin(){
 
 function doLogout(){
   if(!confirm('세션을 종료하고 로그인 화면으로 돌아가시겠습니까?'))return;
+  sessionStorage.removeItem('pos_login_name');
   location.reload();
 }
 
@@ -2566,6 +2570,18 @@ function resetAttForm(){
 // 1) 즉시 실행 (script가 </body> 직전이므로 DOM 준비됨)
 (function(){
   try { initLoginForm(); } catch(e) { console.error('initLoginForm 즉시 실패:', e); }
+  // 세션 복원 — F5 새로고침 시 자동 로그인
+  try {
+    const saved = sessionStorage.getItem('pos_login_name');
+    if(saved){
+      const sel = document.getElementById('login-name-sel');
+      if(sel){
+        sel.value = saved;
+        // 약간 딜레이 후 자동 로그인 (DOM 완전 로드 후)
+        setTimeout(()=>{ if(sessionStorage.getItem('pos_login_name')) doLogin(); }, 100);
+      }
+    }
+  } catch(e) {}
 })();
 
 // 2) DOMContentLoaded (혹시 DOM이 아직이면)
