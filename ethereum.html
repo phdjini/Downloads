@@ -301,7 +301,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="FINAL-005">
+<div id="status-bar" data-ver="FINAL-006">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -316,7 +316,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
       <button class="btn btn-sm" onclick="prevEpoch()" style="background:#21262d;color:#8b949e;padding:2px 8px;">◀</button>
       <button class="btn btn-sm" onclick="nextEpoch()" style="background:#1f6feb;color:#fff;padding:2px 8px;">다음 에폭 ▶</button>
     </span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-005
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-006
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -339,7 +339,11 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
     <button onclick="prevEpoch()" style="background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:11px;">◀ 이전 에폭</button>
     <button onclick="nextEpoch()" style="background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:11px;">다음 에폭 ▶</button>
     <div style="width:1px;height:24px;background:#30363d;"></div>
-    <button onclick="advanceSlot()" style="background:#238636;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:bold;">다음 슬롯 ▶▶</button>
+    <div style="width:1px;height:24px;background:#30363d;"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+      <button id="btn-advance-slot" onclick="advanceSlot()" style="background:#238636;color:#fff;border:none;border-radius:6px;padding:8px 20px;cursor:pointer;font-size:13px;font-weight:bold;min-width:140px;">📡 다음 슬롯 브로드캐스트</button>
+      <span style="font-size:10px;color:#6e7681;">클릭 시 모든 참여자에게 즉시 전파</span>
+    </div>
     <div style="margin-left:auto;font-size:11px;color:#6e7681;">Firebase 실시간 동기화 · 모든 참여자에게 즉시 반영됩니다</div>
   </div>
   <!-- 에폭별 제안자 요약 -->
@@ -950,36 +954,69 @@ function subscribeCurrentEpoch(){
 
 
 function onSlotChanged(){
-  // 상태바 슬롯 배지 업데이트
+  const globalSlot=(currentEpoch-1)*SPE+currentSlot;
+  // 상태바 슬롯 표시
   const lbl=document.getElementById('sb-slot-label');
-  if(lbl) lbl.textContent='Slot #'+((currentEpoch-1)*SPE+currentSlot);
+  if(lbl) lbl.textContent='Epoch #'+currentEpoch+' · Slot #'+globalSlot;
+  // 에폭 배지도 갱신
+  const badge=document.getElementById('sb-epoch-badge');
+  if(badge){
+    const colors=['#56b6c2','#98c379','#e5c07b'];
+    const c=colors[(currentEpoch-1)%3];
+    badge.style.background=c+'22'; badge.style.borderColor=c+'88'; badge.style.color=c;
+    badge.textContent='Epoch #'+currentEpoch+' · Slot #'+currentSlot;
+  }
+  // 운영자 패널
+  const opSlot=document.getElementById('op-slot-display');
+  if(opSlot) opSlot.textContent=currentSlot;
+  const opEpoch=document.getElementById('op-epoch-display');
+  if(opEpoch) opEpoch.textContent=currentEpoch;
   // 블록 생성 탭 갱신
   const blockTab=document.getElementById('tab-block');
   if(blockTab && blockTab.style.display!=='none') initBlockTab();
   // TX 슬롯 선택기 갱신
   fillTxSlotSel();
-  // 운영자 패널 업데이트
-  const opDisp=document.getElementById('op-slot-display');
-  if(opDisp) opDisp.textContent=currentSlot;
+  // 운영자 요약
   renderOperatorSummary();
 }
 
 function advanceSlot(){
-  // 슬롯 증가 — 운영자 또는 블록 확정 시 호출
+  if(!ME || !ME.isOperator){toast('운영자만 슬롯을 전환할 수 있습니다.',true);return;}
   let newEpoch=currentEpoch, newSlot=currentSlot+1;
   if(newSlot>SPE){
     newSlot=1;
     newEpoch=currentEpoch+1;
     if(newEpoch>EPOCHS){ toast('모든 에폭이 완료되었습니다! 🎉'); return; }
   }
-  if(firebaseOK && db){
-    db.ref(PATH.currentSlot).set(newSlot);
-    db.ref(PATH.currentEpoch).set(newEpoch);
-  } else {
-    currentSlot=newSlot; currentEpoch=newEpoch;
-    onSlotChanged(); onEpochChanged();
+  const btn=document.getElementById('btn-advance-slot');
+  if(btn){ btn.disabled=true; btn.textContent='📡 전송 중...'; btn.style.background='#444'; }
+
+  function onDone(){
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='✅ Epoch #'+newEpoch+' Slot #'+newSlot+' 브로드캐스트 완료';
+      btn.style.background='#1a7f37';
+      btn.style.animation='';
+      setTimeout(()=>{
+        btn.textContent='📡 다음 슬롯 브로드캐스트';
+        btn.style.background='#238636';
+      }, 3000);
+    }
+    toast('✅ Epoch #'+newEpoch+' Slot #'+newSlot+' — 모든 참여자에게 전파 완료!');
   }
-  toast('✅ Epoch #'+newEpoch+' Slot #'+newSlot+' 시작!');
+
+  if(firebaseOK && db){
+    // epoch와 slot을 동시에 업데이트
+    db.ref('sim').update({currentEpoch:newEpoch, currentSlot:newSlot})
+      .then(onDone)
+      .catch(()=>{
+        currentEpoch=newEpoch; currentSlot=newSlot;
+        onSlotChanged(); onEpochChanged(); onDone();
+      });
+  } else {
+    currentEpoch=newEpoch; currentSlot=newSlot;
+    onSlotChanged(); onEpochChanged(); onDone();
+  }
 }
 
 function onEpochChanged(){
@@ -993,9 +1030,6 @@ function onEpochChanged(){
     badge.style.color=c;
     badge.textContent='Epoch #'+currentEpoch+' 진행중';
   }
-  // 에폭 변경 시 슬롯 1로 리셋
-  if(firebaseOK && db) db.ref(PATH.currentSlot).set(1);
-  else { currentSlot=1; onSlotChanged(); }
   // 블록 생성 탭이 열려있으면 갱신
   const blockTab=document.getElementById('tab-block');
   if(blockTab && blockTab.style.display!=='none') initBlockTab();
@@ -1012,9 +1046,9 @@ function nextEpoch(){
   if(currentEpoch>=EPOCHS){toast('마지막 에폭입니다.',true);return;}
   const next=currentEpoch+1;
   if(firebaseOK && db){
-    db.ref(PATH.currentEpoch).set(next);
-  } else { currentEpoch=next; onEpochChanged(); }
-  toast('Epoch #'+next+' 시작!');
+    db.ref('sim').update({currentEpoch:next, currentSlot:1})
+      .then(()=>toast('Epoch #'+next+' 시작!'));
+  } else { currentEpoch=next; currentSlot=1; onEpochChanged(); onSlotChanged(); }
 }
 
 function prevEpoch(){
@@ -1022,9 +1056,9 @@ function prevEpoch(){
   if(currentEpoch<=1){toast('첫 번째 에폭입니다.',true);return;}
   const prev=currentEpoch-1;
   if(firebaseOK && db){
-    db.ref(PATH.currentEpoch).set(prev);
-  } else { currentEpoch=prev; onEpochChanged(); }
-  toast('Epoch #'+prev+' 로 돌아갔습니다.');
+    db.ref('sim').update({currentEpoch:prev, currentSlot:1})
+      .then(()=>toast('Epoch #'+prev+' 로 돌아갔습니다.'));
+  } else { currentEpoch=prev; currentSlot=1; onEpochChanged(); onSlotChanged(); }
 }
 
 
