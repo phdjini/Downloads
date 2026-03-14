@@ -301,7 +301,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="BUILD-001">
+<div id="status-bar" data-ver="BUILD-003">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -311,9 +311,31 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
   <div style="display:flex;gap:10px;align-items:center;color:#6e7681;font-size:11px;">
     <span><span class="sb-dot"></span>Firebase 실시간 동기화</span>
     <span id="sb-slot-label" style="color:#8b949e;"></span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vBUILD-001-FIX5</span>
+    <span id="sb-epoch-badge" style="background:#1f3a5f;border:1px solid #388bfd;border-radius:4px;padding:2px 10px;font-size:11px;color:#79c0ff;font-weight:bold;">Epoch #1 진행중</span>
+    <span id="sb-epoch-ctrl" style="display:none;">
+      <button class="btn btn-sm" onclick="prevEpoch()" style="background:#21262d;color:#8b949e;padding:2px 8px;">◀</button>
+      <button class="btn btn-sm" onclick="nextEpoch()" style="background:#1f6feb;color:#fff;padding:2px 8px;">다음 에폭 ▶</button>
+    </span>
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vBUILD-003-FIX5</span>
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
+</div>
+
+<!-- ══ 운영자 패널 ══ -->
+<div id="operator-panel" style="display:none;background:#0d1117;border-bottom:2px solid #f0883e;padding:10px 20px;">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <span style="color:#f0883e;font-weight:bold;font-size:13px;">👑 운영자 패널</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="color:#8b949e;font-size:12px;">현재 에폭:</span>
+      <span id="op-epoch-display" style="font-size:18px;font-weight:bold;color:#79c0ff;">1</span>
+      <span style="color:#8b949e;font-size:12px;">/ 3</span>
+    </div>
+    <button onclick="prevEpoch()" style="background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;">◀ 이전 에폭</button>
+    <button onclick="nextEpoch()" style="background:#1f6feb;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:bold;">다음 에폭 ▶</button>
+    <div style="margin-left:auto;font-size:11px;color:#6e7681;">Firebase 실시간 동기화 · 모든 참여자에게 즉시 반영됩니다</div>
+  </div>
+  <!-- 에폭별 제안자 요약 -->
+  <div id="op-epoch-summary" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;"></div>
 </div>
 
 <!-- ═══════════════════════════════════
@@ -675,9 +697,10 @@ function dbOn(path, cb){
 
 // DB 경로 상수
 const PATH = {
-  mempool:     'sim/mempool',   // TX + ATT 통합
+  mempool:     'sim/mempool',
   blocks:      'sim/blocks',
-  balanceSeed: 'sim/balanceSeed'
+  balanceSeed: 'sim/balanceSeed',
+  currentEpoch:'sim/currentEpoch'
 };
 
 /* ════════════════════════════════════════════
@@ -695,6 +718,8 @@ const PARTICIPANTS = NAMES.map((name,i)=>({
   name,
   addr:`0x${name.substring(0,3).toUpperCase()}${String(100+i).padStart(3,'0')}`
 }));
+
+const OPERATOR = { name:'운영자', addr:'0xOPERATOR', isOperator:true };
 
 const CONTRACTS = [
   { addr:'0xContract001', name:'SimpleStorage', nonce:1, balance:'0 ETH',
@@ -758,6 +783,7 @@ let savedBlockData = null;  // 마지막 저장 블록
 let selectedBlock  = null;  // Att탭 선택 블록
 let currentVote    = null;  // 현재 투표값
 var attFilter      = "all"; // 블록 목록 필터
+var currentEpoch   = 1;     // 현재 진행 중인 에폭 (1~3)
 
 /* ════════════════════════════════════════════
    유틸
@@ -783,16 +809,28 @@ function toast(msg, isErr=false){
 function initLoginForm(){
   const sel=document.getElementById('login-name-sel');
   sel.innerHTML='<option value="">-- 이름 선택 --</option>';
+  // 운영자 옵션 (맨 위)
+  const oo=document.createElement('option');
+  oo.value='운영자'; oo.textContent='👑 운영자 (에폭 관리)';
+  sel.appendChild(oo);
+  // 구분선
+  const og=document.createElement('optgroup'); og.label='── 참여자 36명 ──';
   NAMES.forEach(n=>{
-    const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o);
+    const o=document.createElement('option'); o.value=n; o.textContent=n; og.appendChild(o);
   });
+  sel.appendChild(og);
 }
 
 function doLogin(){
   const name=document.getElementById('login-name-sel').value;
   if(!name){toast('이름을 선택해주세요.',true);return;}
-  ME = PARTICIPANTS.find(p=>p.name===name);
-  if(!ME){toast('참여자를 찾을 수 없습니다.',true);return;}
+  // 운영자 로그인 처리
+  if(name==='운영자'){
+    ME = OPERATOR;
+  } else {
+    ME = PARTICIPANTS.find(p=>p.name===name);
+    if(!ME){toast('참여자를 찾을 수 없습니다.',true);return;}
+  }
 
   // UI 전환
   document.getElementById('login-overlay').style.display='none';
@@ -804,6 +842,18 @@ function doLogin(){
 
   // 상태바 업데이트
   document.getElementById('sb-name').textContent=ME.name;
+  // 운영자면 에폭 전환 버튼 표시
+  if(ME.isOperator){
+    const opPanel=document.getElementById('operator-panel');
+    if(opPanel) opPanel.style.display='block';
+    renderOperatorSummary();
+    const ctrl=document.getElementById('sb-epoch-ctrl');
+    if(ctrl) ctrl.style.display='inline-flex';
+    // 운영자는 TX/블록 생성 탭 숨김
+    document.getElementById('main-tab-bar').querySelectorAll('.tab-btn').forEach(b=>{
+      if(b.textContent.includes('TX') || b.textContent.includes('블록 생성')) b.style.display='none';
+    });
+  }
   document.getElementById('sb-addr').textContent=ME.addr;
   document.getElementById('sb-role-tag').textContent='';
 
@@ -846,6 +896,7 @@ function initApp(){
   // Firebase 실시간 리스너
   subscribeMempool();
   subscribeBlocks();
+  subscribeCurrentEpoch();
 }
 
 /* ════════════════════════════════════════════
@@ -863,6 +914,85 @@ function showTab(name,btn){
   if(name==='block') initBlockTab();
 }
 
+
+/* ═══ 에폭 관리 ═══ */
+function subscribeCurrentEpoch(){
+  if(firebaseOK && db){
+    db.ref(PATH.currentEpoch).on('value', snap=>{
+      const val = snap.val();
+      currentEpoch = (val && val>=1 && val<=EPOCHS) ? val : 1;
+      onEpochChanged();
+    });
+  } else {
+    // 로컬 모드: epoch 1로 시작
+    currentEpoch=1; onEpochChanged();
+  }
+}
+
+function onEpochChanged(){
+  // 상태바 배지 업데이트
+  const badge=document.getElementById('sb-epoch-badge');
+  if(badge){
+    const colors=['#56b6c2','#98c379','#e5c07b'];
+    const c=colors[(currentEpoch-1)%3];
+    badge.style.background=c+'22';
+    badge.style.borderColor=c+'88';
+    badge.style.color=c;
+    badge.textContent='Epoch #'+currentEpoch+' 진행중';
+  }
+  // 블록 생성 탭이 열려있으면 갱신
+  const blockTab=document.getElementById('tab-block');
+  if(blockTab && blockTab.style.display!=='none') initBlockTab();
+  // TX 탭 슬롯 선택기 갱신
+  fillTxSlotSel();
+  // 운영자 패널 업데이트
+  const opDisp=document.getElementById('op-epoch-display');
+  if(opDisp) opDisp.textContent=currentEpoch;
+  renderOperatorSummary();
+}
+
+function nextEpoch(){
+  if(!ME || !ME.isOperator){toast('운영자만 에폭을 전환할 수 있습니다.',true);return;}
+  if(currentEpoch>=EPOCHS){toast('마지막 에폭입니다.',true);return;}
+  const next=currentEpoch+1;
+  if(firebaseOK && db){
+    db.ref(PATH.currentEpoch).set(next);
+  } else { currentEpoch=next; onEpochChanged(); }
+  toast('Epoch #'+next+' 시작!');
+}
+
+function prevEpoch(){
+  if(!ME || !ME.isOperator){toast('운영자만 에폭을 전환할 수 있습니다.',true);return;}
+  if(currentEpoch<=1){toast('첫 번째 에폭입니다.',true);return;}
+  const prev=currentEpoch-1;
+  if(firebaseOK && db){
+    db.ref(PATH.currentEpoch).set(prev);
+  } else { currentEpoch=prev; onEpochChanged(); }
+  toast('Epoch #'+prev+' 로 돌아갔습니다.');
+}
+
+
+function renderOperatorSummary(){
+  const el=document.getElementById('op-epoch-summary');
+  if(!el||!epochData) return;
+  const SC=['#e06c75','#e5c07b','#98c379','#56b6c2','#c678dd','#61afef'];
+  el.innerHTML='';
+  for(let e=0;e<EPOCHS;e++){
+    const isCurrent=(e+1)===currentEpoch;
+    const div=document.createElement('div');
+    div.style.cssText='background:'+(isCurrent?'#1f3a5f':'#161b22')+';border:1px solid '+(isCurrent?'#388bfd':'#30363d')+';border-radius:6px;padding:6px 12px;font-size:11px;';
+    let slots='';
+    for(let s=0;s<SPE;s++){
+      const slot=epochData[e][s];
+      const proposer=slot.members.find(m=>m.addr===slot.proposerAddr);
+      const c=SC[s];
+      slots+='<span style="color:'+c+';margin-right:6px;">S'+(s+1)+':'+( proposer?proposer.name:'-')+'</span>';
+    }
+    div.innerHTML='<span style="color:'+(isCurrent?'#58a6ff':'#6e7681')+';font-weight:bold;margin-right:8px;">'+(isCurrent?'▶ ':'')+'Epoch '+(e+1)+'</span>'+slots;
+    el.appendChild(div);
+  }
+}
+
 /* ════ 블록 생성 탭 초기화 ════ */
 function initBlockTab(){
   if(!ME||!epochData) return;
@@ -876,24 +1006,25 @@ function initBlockTab(){
   form.style.setProperty('display','none','important');
   window._currentProposerSlot=null;
 
-  // 제안자 슬롯 탐색
+  // 현재 에폭의 제안자 슬롯만 탐색 (currentEpoch 기준)
   let ps=null;
-  for(let e=0;e<EPOCHS&&!ps;e++)
-    for(let s=0;s<SPE&&!ps;s++)
-      if(epochData[e][s].proposerAddr===ME.addr)
-        ps={epochIdx:e,slotIdx:s,globalSlot:e*SPE+s+1,slot:epochData[e][s]};
+  const eIdx=currentEpoch-1; // 0-based
+  for(let s=0;s<SPE&&!ps;s++)
+    if(epochData[eIdx][s].proposerAddr===ME.addr)
+      ps={epochIdx:eIdx,slotIdx:s,globalSlot:eIdx*SPE+s+1,slot:epochData[eIdx][s]};
 
   if(!ps){
     // 제안자 아님 — noRole 화면만 표시
     noRole.style.cssText='display:block';
     form.style.cssText='display:none';
+    // 현재 에폭의 검증자 슬롯만 표시
     let vSlots=[];
-    for(let e=0;e<EPOCHS;e++)
-      for(let s=0;s<SPE;s++){
-        const sl=epochData[e][s];
-        if(sl.proposerAddr!==ME.addr&&sl.members.find(m=>m.addr===ME.addr))
-          vSlots.push('Slot #'+(e*SPE+s+1));
-      }
+    const curEIdx=currentEpoch-1;
+    for(let s=0;s<SPE;s++){
+      const sl=epochData[curEIdx][s];
+      if(sl.proposerAddr!==ME.addr&&sl.members.find(m=>m.addr===ME.addr))
+        vSlots.push('Slot #'+(curEIdx*SPE+s+1));
+    }
     const msg=document.getElementById('block-no-role-msg');
     if(msg) msg.innerHTML=vSlots.length
       ?'검증자로 배정된 슬롯: <span style="color:#56d364;">'+vSlots.join(', ')+'</span><br><br>블록 브로드캐스트 수신 후<br><b>Attestation 탭</b>에서 검증하고 투표하세요.'
@@ -1202,18 +1333,17 @@ function fillTxSlotSel(){
   const sel = document.getElementById('tx-slot-sel');
   if(!sel || !epochData) return;
   sel.innerHTML = '<option value="">-- 슬롯을 선택하세요 --</option>';
-  for(let e=0;e<EPOCHS;e++){
-    const g = document.createElement('optgroup');
-    g.label = 'Epoch #'+(e+1);
-    for(let s=0;s<SPE;s++){
-      const gs = e*SPE+s+1;
-      const o = document.createElement('option');
-      o.value = gs;
-      o.textContent = 'Epoch '+(e+1)+' · Slot '+(s+1)+'  (전체 Slot #'+gs+')';
-      g.appendChild(o);
-    }
-    sel.appendChild(g);
+  const eIdx = (currentEpoch||1)-1;
+  const g = document.createElement('optgroup');
+  g.label = 'Epoch #'+currentEpoch+' (현재)';
+  for(let s=0;s<SPE;s++){
+    const gs = eIdx*SPE+s+1;
+    const o = document.createElement('option');
+    o.value = gs;
+    o.textContent = 'Epoch '+currentEpoch+' · Slot '+(s+1)+'  (전체 #'+gs+')';
+    g.appendChild(o);
   }
+  sel.appendChild(g);
 }
 
 function onTxSlotChange(){
