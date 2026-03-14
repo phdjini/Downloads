@@ -2107,7 +2107,7 @@ function selectBlock(b,el){
     :'<span style="background:#2a1f0d;border:1px solid #e3b341;color:#e3b341;border-radius:4px;padding:2px 8px;font-size:11px;">⏳ Pending</span>';
 
   document.getElementById('att-d-num').textContent='#'+(b.blockNumber||'-');
-  document.getElementById('att-d-slot').textContent='Slot #'+b.slot+' / Epoch #'+((b.epochIdx||0)+1)+' · Slot '+((b.slotIdx||0)+1);
+  document.getElementById('att-d-slot').textContent='Slot #'+b.slot+' / Epoch #'+((b.epochIdx||0)+1);
   document.getElementById('att-d-proposer').textContent=(b.proposerName||'-')+' ('+b.proposer+')';
   document.getElementById('att-d-txcount').textContent=(b.transactions||[]).length+'건';
   document.getElementById('att-d-root').textContent=b.blockRoot||'-';
