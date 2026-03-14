@@ -301,7 +301,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="FINAL-006">
+<div id="status-bar" data-ver="FINAL-007">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -316,7 +316,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
       <button class="btn btn-sm" onclick="prevEpoch()" style="background:#21262d;color:#8b949e;padding:2px 8px;">◀</button>
       <button class="btn btn-sm" onclick="nextEpoch()" style="background:#1f6feb;color:#fff;padding:2px 8px;">다음 에폭 ▶</button>
     </span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-006
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-007
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -373,7 +373,11 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
       <br>각 슬롯은 고유 색상으로 구분 &nbsp;|&nbsp; <span style="color:#ffd700;">■ 나(⬅)</span> &nbsp;·&nbsp; <span style="font-size:11px;">★ 블록 제안자(1명)</span> &nbsp;·&nbsp; <span style="font-size:11px;">· 검증자 위원회(5명)</span>
     </div>
     <!-- 내 잔액 카드 -->
-    <div id="balance-summary" style="display:none;margin-bottom:16px;">
+    <div id="finalization-panel" style="margin-bottom:16px;">
+  <div style="font-size:13px;font-weight:bold;color:#e6edf3;margin-bottom:8px;">🏁 Casper FFG Finalization 현황</div>
+  <div style="color:#6e7681;font-size:11px;">블록이 브로드캐스트되면 자동으로 집계됩니다.</div>
+</div>
+<div id="balance-summary" style="display:none;margin-bottom:16px;">
       <div id="my-balance-card" style="background:linear-gradient(135deg,#0d2a0d,#162616);border:1px solid #238636;border-radius:10px;padding:14px 22px;display:flex;align-items:center;gap:18px;">
         <div style="font-size:32px;">💰</div>
         <div>
@@ -798,6 +802,8 @@ let currentVote    = null;  // 현재 투표값
 var attFilter      = "all"; // 블록 목록 필터
 var currentEpoch   = 1;     // 현재 진행 중인 에폭 (1~3)
 var currentSlot    = 1;     // 현재 진행 중인 슬롯 (1~6, 에폭 내)
+var epochJustified = {};  // {1:true, 2:true, ...} 에폭별 Justified 여부
+var epochFinalized = {};  // {1:true, ...} 에폭별 Finalized 여부
 
 /* ════════════════════════════════════════════
    유틸
@@ -1081,6 +1087,82 @@ function renderOperatorSummary(){
     div.innerHTML='<span style="color:'+(isCurrent?'#58a6ff':'#6e7681')+';font-weight:bold;margin-right:8px;">'+(isCurrent?'▶ ':'')+'Epoch '+(e+1)+'</span>'+slots;
     el.appendChild(div);
   }
+}
+
+
+/* ═══ Casper FFG Finalization ═══ */
+function calcEpochJustified(epochNum){
+  // 해당 에폭의 모든 슬롯 블록이 2/3 이상 득표하면 Justified
+  const eIdx=epochNum-1;
+  for(let s=0;s<SPE;s++){
+    const gs=eIdx*SPE+s+1;
+    const block=Object.values(fbBlocksCache).find(b=>b.slot===gs);
+    if(!block) return false; // 블록 없으면 미완
+    if(!isBlockFinalized(block)) return false; // 2/3 미달
+  }
+  return true;
+}
+
+function updateFinalizationState(){
+  // 각 에폭 Justified 여부 계산
+  for(let e=1;e<=EPOCHS;e++){
+    epochJustified[e] = calcEpochJustified(e);
+  }
+  // Finalized: 연속 2 에폭이 Justified
+  for(let e=1;e<=EPOCHS-1;e++){
+    if(epochJustified[e] && epochJustified[e+1]){
+      epochFinalized[e]=true;
+    }
+  }
+  renderFinalizationPanel();
+}
+
+function renderFinalizationPanel(){
+  const el=document.getElementById('finalization-panel');
+  if(!el) return;
+
+  const SC=['#56b6c2','#98c379','#e5c07b'];
+  let html='';
+  for(let e=1;e<=EPOCHS;e++){
+    const isJ=epochJustified[e]||false;
+    const isF=epochFinalized[e]||false;
+    const c=SC[e-1];
+    const status = isF
+      ? '<span style="background:#0d2a0d;border:1px solid #238636;color:#56d364;border-radius:4px;padding:2px 8px;font-size:11px;">🏁 Finalized</span>'
+      : isJ
+      ? '<span style="background:#1f3a5f;border:1px solid #388bfd;color:#79c0ff;border-radius:4px;padding:2px 8px;font-size:11px;">✅ Justified</span>'
+      : '<span style="background:#21262d;border:1px solid #30363d;color:#6e7681;border-radius:4px;padding:2px 8px;font-size:11px;">⏳ Pending</span>';
+
+    // 슬롯별 득표 현황
+    let slotBars='';
+    for(let s=0;s<SPE;s++){
+      const gs=(e-1)*SPE+s+1;
+      const block=Object.values(fbBlocksCache).find(b=>b.slot===gs);
+      const atts=block?getBlockAtts(block):[];
+      const sup=atts.filter(a=>a.vote==='SUPPORT').length;
+      const pct=Math.round(sup/5*100);
+      const barC=sup/5>=2/3?'#56d364':'#e3b341';
+      slotBars+='<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">'
+        +'<span style="font-size:10px;color:#8b949e;width:40px;">S'+(s+1)+'(#'+gs+')</span>'
+        +'<div style="flex:1;background:#21262d;border-radius:3px;height:8px;overflow:hidden;">'
+        +'<div style="background:'+barC+';width:'+pct+'%;height:100%;"></div></div>'
+        +'<span style="font-size:10px;color:'+barC+';width:28px;">'+sup+'/5</span>'
+        +(block?'':'<span style="font-size:9px;color:#484f58;">블록없음</span>')
+        +'</div>';
+    }
+
+    html+='<div style="background:#0d1117;border:1px solid '+(isF?'#238636':isJ?'#388bfd':'#21262d')+';border-radius:8px;padding:10px 14px;margin-bottom:8px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+      +'<span style="font-weight:bold;color:'+c+';">Epoch #'+e+'</span>'+status+'</div>'
+      +slotBars
+      +'</div>';
+  }
+
+  // Finalization 규칙 설명
+  html+='<div style="font-size:10px;color:#6e7681;margin-top:6px;padding:8px;background:#161b22;border-radius:6px;">'
+    +'📌 Casper FFG: 연속 2 에폭이 Justified(각 슬롯 2/3 이상 득표) → 이전 에폭 Finalized</div>';
+
+  el.innerHTML=html;
 }
 
 /* ════ 블록 생성 탭 초기화 ════ */
@@ -1755,7 +1837,8 @@ function subscribeMempool(){
       const items=Object.values(window._mempoolCache).reverse();
       renderMempoolItems(items);
       renderAttBlockList();
-      checkBlockFinalization(); // 블록 확정 감지
+      checkBlockFinalization();
+      updateFinalizationState(); // 블록 확정 감지
     });
   } else {
     setInterval(()=>{
@@ -1964,6 +2047,7 @@ function subscribeBlocks(){
       Object.entries(snap.val()||{}).forEach(([k,v])=>{ fbBlocksCache[k]=v; });
       renderAttBlockList();
       checkBlockFinalization();
+      updateFinalizationState();
     });
   } else {
     setInterval(()=>{
