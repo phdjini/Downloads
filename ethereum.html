@@ -1049,6 +1049,7 @@ function initBlockTab(){
   const color=SC[(ps.globalSlot-1)%SC.length];
   const committee=ps.slot.members.filter(m=>m.addr!==ME.addr);
 
+  const banner=document.getElementById('b-slot-banner');
   if(banner) banner.innerHTML='<div style="border:2px solid '+color+';border-radius:8px;padding:12px 16px;background:'+color+'12;margin-bottom:8px;"><div style="font-size:15px;font-weight:bold;color:'+color+';margin-bottom:6px;">⭐ 블록 제안자 슬롯</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;"><div style="background:#0d1117;border-radius:5px;padding:6px 10px;text-align:center;"><div style="font-size:10px;color:#6e7681;">Epoch</div><div style="font-size:16px;font-weight:bold;color:'+color+';">'+( ps.epochIdx+1)+'</div></div><div style="background:#0d1117;border-radius:5px;padding:6px 10px;text-align:center;"><div style="font-size:10px;color:#6e7681;">Slot</div><div style="font-size:16px;font-weight:bold;color:'+color+';">'+( ps.slotIdx+1)+'</div></div><div style="background:#0d1117;border-radius:5px;padding:6px 10px;text-align:center;"><div style="font-size:10px;color:#6e7681;">전체 Slot</div><div style="font-size:16px;font-weight:bold;color:#f78166;">#'+ps.globalSlot+'</div></div></div><div style="font-size:11px;color:#8b949e;">검증 위원회: '+committee.map(m=>'<span style="color:'+color+';">'+m.name+'</span>').join(' · ')+'</div></div>';
 
   const pd=document.getElementById('b-proposer-display');
@@ -2519,9 +2520,6 @@ function resetTxForm(){
   const banner=document.getElementById('tx-slot-banner');  if(banner)  banner.style.display='none';
   const argWrap=document.getElementById('arg-hint-wrap');  if(argWrap) argWrap.style.display='none';
   const result=document.getElementById('tx-result');       if(result)  result.style.display='none';
-  // 브로드캐스트 버튼 원상복구
-  const bcBtn=document.getElementById('btn-tx-bc');
-  if(bcBtn){ bcBtn.disabled=false; bcBtn.textContent='📡 TX 브로드캐스트 (36명 전파)'; bcBtn.style.background=''; }
   window._lastTx=null;
 }
 
@@ -2530,7 +2528,7 @@ function resetBlockForm(){
   // 결과/버튼 초기화
   const bResult=document.getElementById('b-result');        if(bResult) bResult.style.display='none';
   const bBcBtn=document.getElementById('btn-block-bc');
-  if(bBcBtn){ bBcBtn.style.display='none'; bBcBtn.disabled=false; bBcBtn.textContent='📡 블록 브로드캐스트 (검증자에게 전파)'; bBcBtn.style.background=''; }
+  if(bBcBtn){ bBcBtn.style.display='none'; }
   const bResetBtn2=document.getElementById('btn-block-reset'); if(bResetBtn2) bResetBtn2.style.display='none';
   // 저장 버튼 원상복구
   const saveBtn=document.querySelector('#block-proposer-form .btn-green');
