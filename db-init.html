@@ -118,12 +118,12 @@ const FIREBASE_CONFIG = {
 };
 
 const NAMES = [
-  'Alice','Bob','Carol','Dave','Eve','Frank',
-  'Grace','Hank','Iris','Jack','Kate','Leo',
-  'Mia','Nick','Olive','Pete','Quinn','Rose',
-  'Sam','Tina','Uma','Victor','Wendy','Xander',
-  'Yara','Zach','Aria','Bruno','Cleo','Dylan',
-  'Ella','Felix','Gina','Hugo','Ivy','Jax'
+  '김재규','김지완','김진아','문기정','문서정','박상원',
+  '박주인','서지훈','석경원','송동민','신혜진','양다은',
+  '오다솜','오정민','오한결','이경인','이동진','이우중',
+  '김영진','이재헌','이준기','이현정','이혜림','임보라',
+  '임세훈','임정택','최강훈','최유진','어준성','유문식',
+  '공원빈','권병수','김랑일','김부영','김선천','김성식'
 ];
 const PARTICIPANTS = NAMES.map((name,i)=>({
   name,
@@ -249,9 +249,9 @@ async function addTestTx(){
   if(!db){ log('Firebase 연결 안됨', 'err'); return; }
   const tx = {
     from: '0xALI100',
-    fromText: '0xALI100 (Alice)',
+    fromText: '0xALI100 (김재규)',
     to: '0xBOB101',
-    toText: '0xBOB101 (Bob)',
+    toText: '0xBOB101 (김지완)',
     value: '10.0 ETH',
     nonce: '0',
     gas: '0.1000 ETH',
@@ -272,7 +272,7 @@ async function addTestTx(){
 }
 
 // 시작 시 자동 현황 조회
-window.addEventListener('load', ()=>{ setTimeout(fetchStatus, 1000); });
+window.add문서정ntListener('load', ()=>{ setTimeout(fetchStatus, 1000); });
 </script>
 </body>
 </html>
