@@ -301,7 +301,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <!-- ═══════════════════════════════════
      STATUS BAR
 ═══════════════════════════════════ -->
-<div id="status-bar" data-ver="FINAL-003">
+<div id="status-bar" data-ver="FINAL-004">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span style="color:#58a6ff;font-weight:bold;font-size:13px;" id="sb-name"></span>
     <span style="font-family:monospace;color:#6e7681;font-size:10px;" id="sb-addr"></span>
@@ -316,7 +316,7 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
       <button class="btn btn-sm" onclick="prevEpoch()" style="background:#21262d;color:#8b949e;padding:2px 8px;">◀</button>
       <button class="btn btn-sm" onclick="nextEpoch()" style="background:#1f6feb;color:#fff;padding:2px 8px;">다음 에폭 ▶</button>
     </span>
-    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-003
+    <span id="sb-ver" style="font-size:10px;color:#58a6ff;background:#1f3a5f;border:1px solid #388bfd33;border-radius:3px;padding:1px 6px;">vFINAL-004
     <button class="btn btn-sm" style="background:#21262d;color:#8b949e;padding:3px 10px;" onclick="doLogout()">🚪 나가기</button>
   </div>
 </div>
@@ -325,13 +325,21 @@ select:focus,input:focus{outline:none;border-color:#388bfd;}
 <div id="operator-panel" style="display:none;background:#0d1117;border-bottom:2px solid #f0883e;padding:10px 20px;">
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
     <span style="color:#f0883e;font-weight:bold;font-size:13px;">👑 운영자 패널</span>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span style="color:#8b949e;font-size:12px;">현재 에폭:</span>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="color:#8b949e;font-size:12px;">에폭:</span>
       <span id="op-epoch-display" style="font-size:18px;font-weight:bold;color:#79c0ff;">1</span>
       <span style="color:#8b949e;font-size:12px;">/ 3</span>
     </div>
-    <button onclick="prevEpoch()" style="background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;">◀ 이전 에폭</button>
-    <button onclick="nextEpoch()" style="background:#1f6feb;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:bold;">다음 에폭 ▶</button>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="color:#8b949e;font-size:12px;">슬롯:</span>
+      <span id="op-slot-display" style="font-size:18px;font-weight:bold;color:#56d364;">1</span>
+      <span style="color:#8b949e;font-size:12px;">/ 6</span>
+    </div>
+    <div style="width:1px;height:24px;background:#30363d;"></div>
+    <button onclick="prevEpoch()" style="background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:11px;">◀ 이전 에폭</button>
+    <button onclick="nextEpoch()" style="background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:11px;">다음 에폭 ▶</button>
+    <div style="width:1px;height:24px;background:#30363d;"></div>
+    <button onclick="advanceSlot()" style="background:#238636;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:bold;">다음 슬롯 ▶▶</button>
     <div style="margin-left:auto;font-size:11px;color:#6e7681;">Firebase 실시간 동기화 · 모든 참여자에게 즉시 반영됩니다</div>
   </div>
   <!-- 에폭별 제안자 요약 -->
@@ -700,7 +708,8 @@ const PATH = {
   mempool:     'sim/mempool',
   blocks:      'sim/blocks',
   balanceSeed: 'sim/balanceSeed',
-  currentEpoch:'sim/currentEpoch'
+  currentEpoch:'sim/currentEpoch',
+  currentSlot: 'sim/currentSlot'
 };
 
 /* ════════════════════════════════════════════
@@ -784,6 +793,7 @@ let selectedBlock  = null;  // Att탭 선택 블록
 let currentVote    = null;  // 현재 투표값
 var attFilter      = "all"; // 블록 목록 필터
 var currentEpoch   = 1;     // 현재 진행 중인 에폭 (1~3)
+var currentSlot    = 1;     // 현재 진행 중인 슬롯 (1~6, 에폭 내)
 
 /* ════════════════════════════════════════════
    유틸
@@ -927,10 +937,49 @@ function subscribeCurrentEpoch(){
       currentEpoch = (val && val>=1 && val<=EPOCHS) ? val : 1;
       onEpochChanged();
     });
+    db.ref(PATH.currentSlot).on('value', snap=>{
+      const val = snap.val();
+      currentSlot = (val && val>=1 && val<=SPE) ? val : 1;
+      onSlotChanged();
+    });
   } else {
-    // 로컬 모드: epoch 1로 시작
-    currentEpoch=1; onEpochChanged();
+    currentEpoch=1; currentSlot=1;
+    onEpochChanged(); onSlotChanged();
   }
+}
+
+
+function onSlotChanged(){
+  // 상태바 슬롯 배지 업데이트
+  const lbl=document.getElementById('sb-slot-label');
+  if(lbl) lbl.textContent='Slot #'+((currentEpoch-1)*SPE+currentSlot);
+  // 블록 생성 탭 갱신
+  const blockTab=document.getElementById('tab-block');
+  if(blockTab && blockTab.style.display!=='none') initBlockTab();
+  // TX 슬롯 선택기 갱신
+  fillTxSlotSel();
+  // 운영자 패널 업데이트
+  const opDisp=document.getElementById('op-slot-display');
+  if(opDisp) opDisp.textContent=currentSlot;
+  renderOperatorSummary();
+}
+
+function advanceSlot(){
+  // 슬롯 증가 — 운영자 또는 블록 확정 시 호출
+  let newEpoch=currentEpoch, newSlot=currentSlot+1;
+  if(newSlot>SPE){
+    newSlot=1;
+    newEpoch=currentEpoch+1;
+    if(newEpoch>EPOCHS){ toast('모든 에폭이 완료되었습니다! 🎉'); return; }
+  }
+  if(firebaseOK && db){
+    db.ref(PATH.currentSlot).set(newSlot);
+    db.ref(PATH.currentEpoch).set(newEpoch);
+  } else {
+    currentSlot=newSlot; currentEpoch=newEpoch;
+    onSlotChanged(); onEpochChanged();
+  }
+  toast('✅ Epoch #'+newEpoch+' Slot #'+newSlot+' 시작!');
 }
 
 function onEpochChanged(){
@@ -944,6 +993,9 @@ function onEpochChanged(){
     badge.style.color=c;
     badge.textContent='Epoch #'+currentEpoch+' 진행중';
   }
+  // 에폭 변경 시 슬롯 1로 리셋
+  if(firebaseOK && db) db.ref(PATH.currentSlot).set(1);
+  else { currentSlot=1; onSlotChanged(); }
   // 블록 생성 탭이 열려있으면 갱신
   const blockTab=document.getElementById('tab-block');
   if(blockTab && blockTab.style.display!=='none') initBlockTab();
@@ -1010,25 +1062,23 @@ function initBlockTab(){
   form.style.setProperty('display','none','important');
   window._currentProposerSlot=null;
 
-  // 현재 에폭의 제안자 슬롯만 탐색 (currentEpoch 기준)
+  // 현재 에폭+슬롯의 제안자만 허용
   let ps=null;
   const eIdx=currentEpoch-1; // 0-based
-  for(let s=0;s<SPE&&!ps;s++)
-    if(epochData[eIdx][s].proposerAddr===ME.addr)
-      ps={epochIdx:eIdx,slotIdx:s,globalSlot:eIdx*SPE+s+1,slot:epochData[eIdx][s]};
+  const sIdx=currentSlot-1;  // 0-based
+  if(epochData[eIdx][sIdx].proposerAddr===ME.addr)
+    ps={epochIdx:eIdx,slotIdx:sIdx,globalSlot:eIdx*SPE+sIdx+1,slot:epochData[eIdx][sIdx]};
 
   if(!ps){
     // 제안자 아님 — noRole 화면만 표시
     noRole.style.cssText='display:block';
     form.style.cssText='display:none';
-    // 현재 에폭의 검증자 슬롯만 표시
+    // 현재 슬롯만 표시
     let vSlots=[];
     const curEIdx=currentEpoch-1;
-    for(let s=0;s<SPE;s++){
-      const sl=epochData[curEIdx][s];
-      if(sl.proposerAddr!==ME.addr&&sl.members.find(m=>m.addr===ME.addr))
-        vSlots.push('Slot #'+(curEIdx*SPE+s+1));
-    }
+    const curSIdx=currentSlot-1;
+    const sl=epochData[curEIdx][curSIdx];
+    if(sl.members.find(m=>m.addr===ME.addr)) vSlots.push('Slot #'+(curEIdx*SPE+curSIdx+1));
     const msg=document.getElementById('block-no-role-msg');
     if(msg) msg.innerHTML=vSlots.length
       ?'검증자로 배정된 슬롯: <span style="color:#56d364;">'+vSlots.join(', ')+'</span><br><br>블록 브로드캐스트 수신 후<br><b>Attestation 탭</b>에서 검증하고 투표하세요.'
@@ -1338,17 +1388,14 @@ function fillTxSlotSel(){
   const sel = document.getElementById('tx-slot-sel');
   if(!sel || !epochData) return;
   sel.innerHTML = '<option value="">-- 슬롯을 선택하세요 --</option>';
-  const eIdx = (currentEpoch||1)-1;
-  const g = document.createElement('optgroup');
-  g.label = 'Epoch #'+currentEpoch+' (현재)';
-  for(let s=0;s<SPE;s++){
-    const gs = eIdx*SPE+s+1;
-    const o = document.createElement('option');
-    o.value = gs;
-    o.textContent = 'Epoch '+currentEpoch+' · Slot '+(s+1)+'  (전체 #'+gs+')';
-    g.appendChild(o);
-  }
-  sel.appendChild(g);
+  const eIdx=(currentEpoch||1)-1;
+  const sIdx=(currentSlot||1)-1;
+  const gs=eIdx*SPE+sIdx+1;
+  const o=document.createElement('option');
+  o.value=gs;
+  o.textContent='Epoch '+currentEpoch+' · Slot '+currentSlot+'  (전체 Slot #'+gs+')';
+  o.selected=true;
+  sel.appendChild(o);
 }
 
 function onTxSlotChange(){
@@ -1670,7 +1717,8 @@ function subscribeMempool(){
       window._mempoolCache = snap.val()||{};
       const items=Object.values(window._mempoolCache).reverse();
       renderMempoolItems(items);
-      renderAttBlockList(); // ATT 수신 시 투표 현황 실시간 업데이트
+      renderAttBlockList();
+      checkBlockFinalization(); // 블록 확정 감지
     });
   } else {
     setInterval(()=>{
@@ -1878,6 +1926,7 @@ function subscribeBlocks(){
       fbBlocksCache={};
       Object.entries(snap.val()||{}).forEach(([k,v])=>{ fbBlocksCache[k]=v; });
       renderAttBlockList();
+      checkBlockFinalization();
     });
   } else {
     setInterval(()=>{
