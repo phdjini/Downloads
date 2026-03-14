@@ -16,7 +16,7 @@
 ═══════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{font-family:최강훈l,'Noto Sans KR',sans-serif;background:#0d1117;color:#e6edf3;font-size:13px;display:flex;flex-direction:column}
+body{font-family:Arial,'Noto Sans KR',sans-serif;background:#0d1117;color:#e6edf3;font-size:13px;display:flex;flex-direction:column}
 
 /* ═══════════════════════════════════
    LOGIN OVERLAY
@@ -733,12 +733,12 @@ const PATH = {
    참여자 36명
 ════════════════════════════════════════════ */
 const NAMES = [
-  '김재규','김지완','김진아','문기정','문서정','박상원',
-  '박주인','서지훈','석경원','송동민','신혜진','양다은',
-  '오다솜','오정민','오한결','이경인','이동진','이우중',
-  '이우중','이재헌','이준기','이현정','이혜림','임보라',
-  '임세훈','임정택','최강훈','최유진','어준성','유문식',
-  '공원빈','권병수','김랑일','김부영','김선천','김성식'
+  'Alice','Bob','Carol','Dave','Eve','Frank',
+  'Grace','Hank','Iris','Jack','Kate','Leo',
+  'Mia','Nick','Olive','Pete','Quinn','Rose',
+  'Sam','Tina','Uma','Victor','Wendy','Xander',
+  'Yara','Zach','Aria','Bruno','Cleo','Dylan',
+  'Ella','Felix','Gina','Hugo','Ivy','Jax'
 ];
 const PARTICIPANTS = NAMES.map((name,i)=>({
   name,
@@ -2076,7 +2076,7 @@ function addBlockTxRow(fv,tv,fnv,av,amv){
   const fnS=mkFuncSel(fnv||'');
   const aI=document.createElement('input');aI.type='text';aI.className='b-arg';
   aI.style.cssText='width:100%;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:3px;font-size:10px;padding:3px 4px;';
-  aI.value=av||''; updArgVis(fnS,aI); fnS.add문서정ntListener('change',()=>updArgVis(fnS,aI));
+  aI.value=av||''; updArgVis(fnS,aI); fnS.addEventListener('change',()=>updArgVis(fnS,aI));
   const amI=document.createElement('input');amI.type='text';amI.className='b-amt';amI.style.cssText=aI.style.cssText;amI.placeholder='ETH';amI.value=amv||'';
   const del=document.createElement('button');del.className='btx-del';del.textContent='✕';del.onclick=()=>{row.remove();renumBlock();};
   row.append(num,fromS,arr,toS,fnS,aI,amI,del);
@@ -2110,7 +2110,7 @@ function rebuildAttDDs(){
       });
       document.getElementById('b-att-field').value=ls.join('\n');
     };
-    vS.add문서정ntListener('change',upd);vote.add문서정ntListener('change',upd);
+    vS.addEventListener('change',upd);vote.addEventListener('change',upd);
     row.append(vS,vote);c.appendChild(row);
   }
 }
@@ -2988,7 +2988,7 @@ function resetAttForm(){
 })();
 
 // 2) DOMContentLoaded (혹시 DOM이 아직이면)
-document.add문서정ntListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function(){
   const sel = document.getElementById('login-name-sel');
   if(!sel || sel.options.length <= 1) {
     try { initLoginForm(); } catch(e) { console.error('initLoginForm DOMContentLoaded 실패:', e); }
@@ -2996,7 +2996,7 @@ document.add문서정ntListener('DOMContentLoaded', function(){
 });
 
 // 3) window.onload (모든 리소스 로드 완료 후 최후 시도)
-window.add문서정ntListener('load', function(){
+window.addEventListener('load', function(){
   const sel = document.getElementById('login-name-sel');
   if(!sel || sel.options.length <= 1) {
     try { initLoginForm(); } catch(e) { console.error('initLoginForm load 실패:', e); }
